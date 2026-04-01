@@ -136,8 +136,8 @@ export default function Ponto({
             </button>
           </div>
           <div className="space-y-2">
-            {tickets.filter(t => t.ponto_id === 'active').length > 0 ? (
-              tickets.filter(t => t.ponto_id === 'active').map(t => (
+            {tickets.filter(t => t.is_active).length > 0 ? (
+              tickets.filter(t => t.is_active).map(t => (
                 <div key={t.id} className="bg-surface2 border border-border rounded-xl p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>

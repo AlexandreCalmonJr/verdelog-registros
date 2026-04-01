@@ -120,10 +120,7 @@ export default function App() {
       });
 
       // Link active tickets to this log
-      const activeTickets = tickets.filter(t => t.ponto_id === 'active');
-      for (const t of activeTickets) {
-        await supabaseService.upsertTicket({ ...t, ponto_id: newLog.id });
-      }
+      await supabaseService.linkTicketsToLog(user.id, newLog.id);
 
       await supabaseService.endShift(user.id);
       await loadUserData(user.id);
@@ -145,7 +142,8 @@ export default function App() {
       const ticketData = {
         ...data,
         user_id: user.id,
-        ponto_id: isWorking ? 'active' : (data.ponto_id || null),
+        is_active: data.id ? (data.is_active ?? true) : true, // New tickets are active by default
+        ponto_id: data.ponto_id || null,
         date: data.date || now.toISOString().split('T')[0],
         date_display: data.date_display || now.toLocaleDateString('pt-BR'),
         hora: data.hora || now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),

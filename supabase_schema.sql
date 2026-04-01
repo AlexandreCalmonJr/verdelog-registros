@@ -25,7 +25,8 @@ CREATE TABLE logs (
 CREATE TABLE tickets (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
-  ponto_id TEXT, -- Can be 'active' or UUID of a log
+  ponto_id UUID REFERENCES logs(id) ON DELETE SET NULL, -- Linked to a specific log
+  is_active BOOLEAN DEFAULT TRUE, -- If true, it belongs to the current/next shift
   ref TEXT,
   cliente TEXT,
   description TEXT,
@@ -79,7 +80,7 @@ BEGIN
   VALUES (new.id, new.raw_user_meta_data->>'name', new.email, new.raw_user_meta_data->>'cargo');
   RETURN new;
 END;
-$$ LANGUAGE plpkpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger to create profile on signup
 CREATE TRIGGER on_auth_user_created

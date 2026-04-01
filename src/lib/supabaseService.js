@@ -76,6 +76,17 @@ export const supabaseService = {
     return data;
   },
 
+  async getActiveTickets(userId) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
   async upsertTicket(ticket) {
     const { data, error } = await supabase
       .from('tickets')
@@ -84,6 +95,15 @@ export const supabaseService = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  async linkTicketsToLog(userId, logId) {
+    const { error } = await supabase
+      .from('tickets')
+      .update({ ponto_id: logId, is_active: false })
+      .eq('user_id', userId)
+      .eq('is_active', true);
+    if (error) throw error;
   },
 
   async deleteTicket(ticketId) {
