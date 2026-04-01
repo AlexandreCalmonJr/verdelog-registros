@@ -18,9 +18,10 @@ export default function Auth({ onLogin }) {
     try {
       if (isSignUp) {
         if (!name) throw new Error('Nome é obrigatório');
-        const user = await supabaseService.signUp(email, password, { name, cargo });
-        alert('Conta criada com sucesso! Verifique seu e-mail (se configurado) ou faça login.');
-        setIsSignUp(false);
+        await supabaseService.signUp(email, password, { name, cargo });
+        // Tenta logar imediatamente após o cadastro
+        const user = await supabaseService.signIn(email, password);
+        onLogin(user);
       } else {
         const user = await supabaseService.signIn(email, password);
         onLogin(user);
@@ -42,8 +43,7 @@ export default function Auth({ onLogin }) {
         <div className="w-12 h-12 bg-gradient-to-br from-green to-[#00ffa3] rounded-[14px] flex items-center justify-center font-display font-extrabold text-[1.3rem] text-bg mb-6 shadow-[0_0_24px_rgba(0,200,150,0.35)]">
           VL
         </div>
-        <h1 className="font-display text-2xl font-extrabold mb-0.5">VerdeLog</h1>
-        <p className="text-text-muted text-[0.82rem] mb-6">Governo do Estado da Bahia</p>
+        <h1 className="font-display text-2xl font-extrabold mb-6">VerdeLog</h1>
 
         <form onSubmit={handleAuth} className="space-y-4">
           {isSignUp && (

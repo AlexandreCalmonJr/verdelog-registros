@@ -57,7 +57,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.text('VerdeLog', 15, 18);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Relatório de Atividade — Governo do Estado da Bahia', 15, 27);
+    doc.text('Relatório de Atividade', 15, 27);
     doc.setFontSize(9);
     doc.text(formatMonthLabel(selectedMonth).toUpperCase(), 15, 35);
 
@@ -75,8 +75,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...gray);
-    doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 18, 70);
-    doc.text('Órgão: Governo do Estado da Bahia', 18, 76);
+    doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 18, 73);
 
     // Stats
     const stats = [
@@ -135,7 +134,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.setTextColor(...gray);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · Governo do Estado da Bahia — Uso Interno`, 105, 291, { align: 'center' });
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · VerdeLog — Uso Interno`, 105, 291, { align: 'center' });
 
     doc.save(`verdelog_${selectedMonth}.pdf`);
   };
