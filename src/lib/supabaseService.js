@@ -60,7 +60,7 @@ export const supabaseService = {
     checkClient();
     const { data, error } = await supabase
       .from('logs')
-      .select('*, tickets(*)')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) throw error;

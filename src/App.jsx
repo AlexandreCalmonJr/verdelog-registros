@@ -34,6 +34,14 @@ export default function App() {
   // Auth Listener
   useEffect(() => {
     console.log('App initialized. Supabase client:', supabase);
+    if (supabase) {
+      console.log('Supabase keys:', Object.keys(supabase));
+      console.log('Supabase auth property:', supabase.auth);
+      console.log('Supabase auth type:', typeof supabase.auth);
+      if (supabase.auth) {
+        console.log('Supabase auth keys:', Object.keys(supabase.auth));
+      }
+    }
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {
       console.error('Supabase auth or onAuthStateChanged is missing! Client:', supabase);
       setLoading(false);
@@ -67,8 +75,13 @@ export default function App() {
         supabaseService.getActiveShift(userId)
       ]);
 
+      const logsWithTickets = (l || []).map(log => ({
+        ...log,
+        tickets: (t || []).filter(ticket => ticket.ponto_id === log.id)
+      }));
+
       setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
-      setLogs(l || []);
+      setLogs(logsWithTickets);
       setTickets(t || []);
       
       if (s) {

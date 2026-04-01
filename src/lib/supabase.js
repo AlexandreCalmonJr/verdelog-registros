@@ -11,8 +11,8 @@ const getEnv = (key) => {
   return '';
 };
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+const supabaseUrl = getEnv('VITE_SUPABASE_URL').replace(/[\n\r\s]/g, '');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY').replace(/[\n\r\s]/g, '');
 
 // Mock object to prevent crashes if credentials are missing or invalid
 const mockSupabase = {
@@ -55,9 +55,13 @@ const isValidUrl = (url) => {
 };
 
 if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
+  console.log('Initializing Supabase with URL:', supabaseUrl.substring(0, 15) + '...', 'Key length:', supabaseAnonKey.length);
   try {
     client = createClient(supabaseUrl, supabaseAnonKey);
-    console.log('Supabase client created successfully.');
+    console.log('Supabase client created successfully. Auth:', !!client.auth, 'Functions:', !!client.functions);
+    if (!client.auth) {
+      console.error('Supabase client created but auth is missing! Keys:', Object.keys(client));
+    }
   } catch (error) {
     console.error('Failed to create Supabase client:', error);
     client = mockSupabase;

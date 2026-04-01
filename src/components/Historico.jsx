@@ -12,7 +12,7 @@ export default function Historico({ logs, onViewLog }) {
     return d.toISOString().substring(0, 7);
   });
 
-  const filteredLogs = logs.filter(l => l.dateISO.startsWith(selectedMonth));
+  const filteredLogs = logs.filter(l => l.date_iso?.startsWith(selectedMonth));
   const stats = {
     days: filteredLogs.length,
     hours: filteredLogs.reduce((s, l) => s + l.total_horas, 0),

@@ -13,7 +13,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     return d.toISOString().substring(0, 7);
   });
 
-  const filteredLogs = logs.filter(l => l.dateISO.startsWith(selectedMonth));
+  const filteredLogs = logs.filter(l => l.date_iso?.startsWith(selectedMonth));
   const filteredTickets = tickets.filter(t => t.date.startsWith(selectedMonth));
   const totalH = filteredLogs.reduce((s, l) => s + l.total_horas, 0);
 

@@ -28,7 +28,8 @@ export function validarCPF(cpf) {
 }
 
 export function maskCPF(value) {
-  let v = value.replace(/\D/g, '').substring(0, 11);
+  if (!value) return '';
+  let v = String(value).replace(/\D/g, '').substring(0, 11);
   if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
   else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
   else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
