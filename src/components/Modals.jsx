@@ -73,12 +73,12 @@ export function TicketModal({
   ticket
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', desc: '', status: 'open'
+    ref: '', cliente: '', description: '', status: 'open'
   });
 
   React.useEffect(() => {
     if (ticket) setFormData(ticket);
-    else setFormData({ ref: '', cliente: '', desc: '', status: 'open' });
+    else setFormData({ ref: '', cliente: '', description: '', status: 'open' });
   }, [ticket, isOpen]);
 
   return (
@@ -105,8 +105,8 @@ export function TicketModal({
         <div>
           <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Descrição</label>
           <input 
-            value={formData.desc}
-            onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
             placeholder="Problema de rede..."
           />
@@ -219,7 +219,7 @@ export function LogDetailModal({
           <div className="space-y-2">
             {log.tickets.map(t => (
               <div key={t.id} className="bg-surface2 border border-border rounded-lg p-3">
-                <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span> · <span className="text-[0.82rem]">{t.desc}</span>
+                <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span> · <span className="text-[0.82rem]">{t.description}</span>
               </div>
             ))}
           </div>

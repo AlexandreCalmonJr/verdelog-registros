@@ -62,7 +62,7 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
                     <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
                     {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
                   </div>
-                  <div className="text-[0.85rem] text-text-dim font-medium">{t.desc}</div>
+                  <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
                 </div>
                 <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
                   {statusMap[t.status].label}

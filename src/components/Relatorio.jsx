@@ -26,7 +26,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     });
     csv += `\nCHAMADOS\nData,Ref,Setor/Órgão,Descrição,Status\n`;
     filteredTickets.forEach(t => {
-      csv += `"${t.dateDisplay}","${t.ref}","${t.cliente}","${t.desc.replace(/"/g, '""')}","${t.status}"\n`;
+      csv += `"${t.dateDisplay}","${t.ref}","${t.cliente}","${t.description.replace(/"/g, '""')}","${t.status}"\n`;
     });
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

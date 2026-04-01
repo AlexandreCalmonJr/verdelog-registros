@@ -28,7 +28,7 @@ CREATE TABLE tickets (
   ponto_id TEXT, -- Can be 'active' or UUID of a log
   ref TEXT,
   cliente TEXT,
-  desc TEXT,
+  description TEXT,
   status TEXT DEFAULT 'open',
   date DATE,
   date_display TEXT,

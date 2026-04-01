@@ -145,7 +145,7 @@ export default function Ponto({
                       {t.status}
                     </span>
                   </div>
-                  <div className="text-[0.85rem] text-text-dim">{t.desc}</div>
+                  <div className="text-[0.85rem] text-text-dim">{t.description}</div>
                 </div>
               ))
             ) : (
