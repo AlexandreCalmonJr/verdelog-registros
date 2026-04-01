@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", sans-serif;
+  --font-mono: "DM Mono", monospace;
+  
+  --color-green: #00C896;
+  --color-green-dim: #00a87e;
+  --color-bg: #0a0f0d;
+  --color-surface: #111916;
+  --color-surface2: #182219;
+  --color-border: rgba(0,200,150,0.13);
+  --color-border2: rgba(0,200,150,0.22);
+  --color-text: #e8f5f0;
+  --color-text-dim: #7aada0;
+  --color-text-muted: #3d6358;
+  --color-red: #ff4d6d;
+  --color-amber: #ffb347;
+  --color-blue: #5bc4ff;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text font-sans antialiased min-h-screen overflow-x-hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+}
+
+@keyframes pulse-anim {
+  0% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(0, 200, 150, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-anim 2s infinite;
+}
+
+.working-glow {
+  box-shadow: 0 0 0 1px rgba(0, 200, 150, 0.4), 0 0 40px rgba(0, 200, 150, 0.12);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border2 rounded-full;
+}
