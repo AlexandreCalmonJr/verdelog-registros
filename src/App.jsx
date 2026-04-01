@@ -33,6 +33,13 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
+    console.log('App initialized. Supabase client:', supabase);
+    if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {
+      console.error('Supabase auth or onAuthStateChanged is missing! Client:', supabase);
+      setLoading(false);
+      return;
+    }
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChanged(async (event, session) => {
       if (session) {
         const u = session.user;

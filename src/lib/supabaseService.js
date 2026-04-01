@@ -1,14 +1,22 @@
 import { supabase } from './supabase';
 
+const checkClient = () => {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Adicione as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.');
+  }
+};
+
 export const supabaseService = {
   // Auth
   async signIn(email, password) {
+    checkClient();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data.user;
   },
 
   async signUp(email, password, metadata) {
+    checkClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -19,12 +27,14 @@ export const supabaseService = {
   },
 
   async signOut() {
+    checkClient();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
 
   // Profile
   async getProfile(userId) {
+    checkClient();
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -35,6 +45,7 @@ export const supabaseService = {
   },
 
   async upsertProfile(profile) {
+    checkClient();
     const { data, error } = await supabase
       .from('profiles')
       .upsert(profile)
@@ -46,6 +57,7 @@ export const supabaseService = {
 
   // Logs (Ponto)
   async getLogs(userId) {
+    checkClient();
     const { data, error } = await supabase
       .from('logs')
       .select('*, tickets(*)')
@@ -56,6 +68,7 @@ export const supabaseService = {
   },
 
   async createLog(log) {
+    checkClient();
     const { data, error } = await supabase
       .from('logs')
       .insert(log)
@@ -67,6 +80,7 @@ export const supabaseService = {
 
   // Tickets (Chamados)
   async getTickets(userId) {
+    checkClient();
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -77,6 +91,7 @@ export const supabaseService = {
   },
 
   async getActiveTickets(userId) {
+    checkClient();
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -88,6 +103,7 @@ export const supabaseService = {
   },
 
   async upsertTicket(ticket) {
+    checkClient();
     const { data, error } = await supabase
       .from('tickets')
       .upsert(ticket)
@@ -98,6 +114,7 @@ export const supabaseService = {
   },
 
   async linkTicketsToLog(userId, logId) {
+    checkClient();
     const { error } = await supabase
       .from('tickets')
       .update({ ponto_id: logId, is_active: false })
@@ -107,6 +124,7 @@ export const supabaseService = {
   },
 
   async deleteTicket(ticketId) {
+    checkClient();
     const { error } = await supabase
       .from('tickets')
       .delete()
@@ -116,6 +134,7 @@ export const supabaseService = {
 
   // Active Shift
   async getActiveShift(userId) {
+    checkClient();
     const { data, error } = await supabase
       .from('active_shifts')
       .select('*')
@@ -126,6 +145,7 @@ export const supabaseService = {
   },
 
   async startShift(userId) {
+    checkClient();
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('active_shifts')
@@ -137,6 +157,7 @@ export const supabaseService = {
   },
 
   async endShift(userId) {
+    checkClient();
     const { error } = await supabase
       .from('active_shifts')
       .delete()

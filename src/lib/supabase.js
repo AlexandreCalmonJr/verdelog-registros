@@ -1,10 +1,70 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : '');
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : '');
+// Robust environment variable loading
+const getEnv = (key) => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  return '';
+};
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not found. Please check your environment variables.');
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+// Mock object to prevent crashes if credentials are missing or invalid
+const mockSupabase = {
+  auth: {
+    onAuthStateChanged: (callback) => {
+      console.warn('Using mock onAuthStateChanged. Auth will not work.');
+      // Return a dummy subscription object
+      return { data: { subscription: { unsubscribe: () => {} } } };
+    },
+    signInWithPassword: () => Promise.reject(new Error('Supabase não configurado')),
+    signUp: () => Promise.reject(new Error('Supabase não configurado')),
+    signOut: () => Promise.resolve(),
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+  },
+  from: () => ({
+    select: () => ({ 
+      eq: () => ({ 
+        single: () => Promise.resolve({ data: null, error: null }), 
+        order: () => Promise.resolve({ data: [], error: null }) 
+      }),
+      order: () => Promise.resolve({ data: [], error: null })
+    }),
+    upsert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
+    insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
+    update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }),
+    delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
+  })
+};
+
+let client;
+
+const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
+  try {
+    client = createClient(supabaseUrl, supabaseAnonKey);
+    console.log('Supabase client created successfully.');
+  } catch (error) {
+    console.error('Failed to create Supabase client:', error);
+    client = mockSupabase;
+  }
+} else {
+  console.error('Supabase credentials missing or invalid. URL:', supabaseUrl ? 'provided' : 'missing', 'Key:', supabaseAnonKey ? 'provided' : 'missing');
+  client = mockSupabase;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = client;
