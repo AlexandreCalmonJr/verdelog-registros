@@ -36,6 +36,29 @@ CREATE TABLE maintenance_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
+-- Create Supplies table (Logistics)
+CREATE TABLE supplies (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL, -- Peripherals, Cables, Components, Stationery
+  quantity INTEGER DEFAULT 0,
+  min_quantity INTEGER DEFAULT 5,
+  unit TEXT DEFAULT 'un',
+  location TEXT, -- Stock room, Cabinet A, etc.
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create Equipment Movement table (Logistics)
+CREATE TABLE equipment_movements (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
+  from_sector_id UUID REFERENCES sectors(id) ON DELETE SET NULL,
+  to_sector_id UUID REFERENCES sectors(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  reason TEXT,
+  date TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
 -- Add equipment_id to tickets table
 ALTER TABLE tickets ADD COLUMN equipment_id UUID REFERENCES equipment(id) ON DELETE SET NULL;
 

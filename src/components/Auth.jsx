@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
+import { Cpu, Terminal } from 'lucide-react';
 
 export default function Auth({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [cargo, setCargo] = useState('Servidor Público');
+  const [cargo, setCargo] = useState('Técnico de TI');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,10 +41,12 @@ export default function Auth({ onLogin }) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-[380px] bg-surface border border-border2 rounded-[20px] p-10 shadow-[0_0_60px_rgba(0,200,150,0.06),0_2px_4px_rgba(0,0,0,0.4)]"
       >
-        <div className="w-12 h-12 bg-gradient-to-br from-green to-[#00ffa3] rounded-[14px] flex items-center justify-center font-display font-extrabold text-[1.3rem] text-bg mb-6 shadow-[0_0_24px_rgba(0,200,150,0.35)]">
-          VL
+        <div className="w-12 h-12 bg-gradient-to-br from-green to-[#00ffa3] rounded-[14px] flex items-center justify-center mb-6 shadow-[0_0_24px_rgba(0,200,150,0.35)] relative overflow-hidden group">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Cpu className="text-bg" size={24} strokeWidth={2.5} />
+          <Terminal className="text-bg absolute -bottom-1 -right-1 opacity-40" size={14} />
         </div>
-        <h1 className="font-display text-2xl font-extrabold mb-6">VerdeLog</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight mb-6">Verde<span className="text-green">IT</span></h1>
 
         <form onSubmit={handleAuth} className="space-y-4">
           {isSignUp && (
@@ -67,7 +70,7 @@ export default function Auth({ onLogin }) {
                   value={cargo}
                   onChange={(e) => setCargo(e.target.value)}
                   className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all"
-                  placeholder="Ex: Analista"
+                  placeholder="Ex: Analista de TI"
                 />
               </div>
             </>
@@ -80,7 +83,7 @@ export default function Auth({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all"
-              placeholder="seu@email.ba.gov.br"
+              placeholder="seu@email.com"
             />
           </div>
           <div>

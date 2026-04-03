@@ -219,6 +219,59 @@ export const supabaseService = {
     return data;
   },
 
+  // Logistics: Supplies
+  async getSupplies() {
+    checkClient();
+    const { data, error } = await supabase
+      .from('supplies')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertSupply(supply) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('supplies')
+      .upsert({ ...supply, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteSupply(supplyId) {
+    checkClient();
+    const { error } = await supabase
+      .from('supplies')
+      .delete()
+      .eq('id', supplyId);
+    if (error) throw error;
+  },
+
+  // Logistics: Movements
+  async getMovements() {
+    checkClient();
+    const { data, error } = await supabase
+      .from('equipment_movements')
+      .select('*, equipment(name, serial_number), from_sector:from_sector_id(name), to_sector:to_sector_id(name), profiles:user_id(name)')
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async createMovement(movement) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('equipment_movements')
+      .insert(movement)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // Active Shift
   async getActiveShift(userId) {
     checkClient();

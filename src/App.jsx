@@ -6,6 +6,8 @@ import Chamados from './components/Chamados';
 import Historico from './components/Historico';
 import Relatorio from './components/Relatorio';
 import Inventory from './components/Inventory';
+import Logistics from './components/Logistics';
+import Home from './components/Home';
 import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
 import { validarCPF } from './lib/utils';
 import { supabase } from './lib/supabase';
@@ -14,10 +16,12 @@ import { supabaseService } from './lib/supabaseService';
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState('ponto');
+  const [activeTab, setActiveTab] = useState('home');
   const [logs, setLogs] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [sectors, setSectors] = useState([]);
+  const [activeShiftsCount, setActiveShiftsCount] = useState(0);
   const [isWorking, setIsWorking] = useState(false);
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
@@ -70,12 +74,13 @@ export default function App() {
 
   const loadUserData = async (userId) => {
     try {
-      const [p, l, t, s, e] = await Promise.all([
+      const [p, l, t, s, e, sec] = await Promise.all([
         supabaseService.getProfile(userId),
         supabaseService.getLogs(userId),
         supabaseService.getTickets(userId),
         supabaseService.getActiveShift(userId),
-        supabaseService.getEquipment()
+        supabaseService.getEquipment(),
+        supabaseService.getSectors()
       ]);
 
       const logsWithTickets = (l || []).map(log => ({
@@ -87,6 +92,13 @@ export default function App() {
       setLogs(logsWithTickets);
       setTickets(t || []);
       setEquipment(e || []);
+      setSectors(sec || []);
+      
+      // Fetch active shifts count for home stats
+      const { count } = await supabase
+        .from('active_shifts')
+        .select('*', { count: 'exact', head: true });
+      setActiveShiftsCount(count || 0);
       
       if (s) {
         setIsWorking(true);
@@ -218,6 +230,13 @@ export default function App() {
 
   if (!user || !profile) return <Auth onLogin={handleLogin} />;
 
+  const stats = {
+    equipmentCount: equipment.length,
+    activeTickets: tickets.filter(t => t.is_active).length,
+    sectorCount: sectors.length,
+    activeShifts: activeShiftsCount
+  };
+
   return (
     <Layout 
       user={user} 
@@ -226,6 +245,10 @@ export default function App() {
       setActiveTab={setActiveTab}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
     >
+      {activeTab === 'home' && (
+        <Home user={user} onNavigate={setActiveTab} stats={stats} />
+      )}
+
       {activeTab === 'ponto' && (
         <Ponto 
           isWorking={isWorking}
@@ -241,6 +264,10 @@ export default function App() {
 
       {activeTab === 'inventario' && (
         <Inventory user={user} />
+      )}
+
+      {activeTab === 'logistica' && (
+        <Logistics user={user} />
       )}
 
       {activeTab === 'chamados' && (
