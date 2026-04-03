@@ -5,6 +5,7 @@ import Ponto from './components/Ponto';
 import Chamados from './components/Chamados';
 import Historico from './components/Historico';
 import Relatorio from './components/Relatorio';
+import Inventory from './components/Inventory';
 import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
 import { validarCPF } from './lib/utils';
 import { supabase } from './lib/supabase';
@@ -16,6 +17,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('ponto');
   const [logs, setLogs] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [equipment, setEquipment] = useState([]);
   const [isWorking, setIsWorking] = useState(false);
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
@@ -68,11 +70,12 @@ export default function App() {
 
   const loadUserData = async (userId) => {
     try {
-      const [p, l, t, s] = await Promise.all([
+      const [p, l, t, s, e] = await Promise.all([
         supabaseService.getProfile(userId),
         supabaseService.getLogs(userId),
         supabaseService.getTickets(userId),
-        supabaseService.getActiveShift(userId)
+        supabaseService.getActiveShift(userId),
+        supabaseService.getEquipment()
       ]);
 
       const logsWithTickets = (l || []).map(log => ({
@@ -83,6 +86,7 @@ export default function App() {
       setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
       setLogs(logsWithTickets);
       setTickets(t || []);
+      setEquipment(e || []);
       
       if (s) {
         setIsWorking(true);
@@ -235,6 +239,10 @@ export default function App() {
         />
       )}
 
+      {activeTab === 'inventario' && (
+        <Inventory user={user} />
+      )}
+
       {activeTab === 'chamados' && (
         <Chamados 
           tickets={tickets}
@@ -270,6 +278,7 @@ export default function App() {
         onClose={() => setModals({ ...modals, ticket: false })}
         onSave={saveTicket}
         ticket={selectedTicket}
+        equipment={equipment}
       />
       <ProfileModal 
         isOpen={modals.profile}

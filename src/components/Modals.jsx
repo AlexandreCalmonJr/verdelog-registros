@@ -70,29 +70,60 @@ export function TicketModal({
   isOpen,
   onClose,
   onSave,
-  ticket
+  ticket,
+  equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open'
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: ''
   });
 
   React.useEffect(() => {
-    if (ticket) setFormData(ticket);
-    else setFormData({ ref: '', cliente: '', description: '', status: 'open' });
+    if (ticket) setFormData({ ...ticket, equipment_id: ticket.equipment_id || '' });
+    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '' });
   }, [ticket, isOpen]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={ticket ? 'Editar Chamado' : 'Novo Chamado'}>
       <div className="space-y-4 mb-6">
-        <div>
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Nº / Ref.</label>
-          <input 
-            value={formData.ref}
-            onChange={(e) => setFormData({ ...formData, ref: e.target.value })}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-            placeholder="INC-2025-001"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Nº / Ref.</label>
+            <input 
+              value={formData.ref}
+              onChange={(e) => setFormData({ ...formData, ref: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+              placeholder="INC-2025-001"
+            />
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
+            <select 
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="open">Aberto</option>
+              <option value="resolved">Resolvido</option>
+              <option value="pending">Pendente</option>
+              <option value="escalated">Escalado</option>
+            </select>
+          </div>
         </div>
+        
+        <div>
+          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
+          <select 
+            value={formData.equipment_id}
+            onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
+            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+          >
+            <option value="">Nenhum equipamento vinculado</option>
+            {equipment.map(e => (
+              <option key={e.id} value={e.id}>{e.name} ({e.brand} {e.model})</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
           <input 
@@ -104,25 +135,12 @@ export function TicketModal({
         </div>
         <div>
           <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Descrição</label>
-          <input 
+          <textarea 
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-            placeholder="Problema de rede..."
+            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all h-24 resize-none"
+            placeholder="Descreva o problema ou solicitação..."
           />
-        </div>
-        <div>
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
-          <select 
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-          >
-            <option value="open">Aberto</option>
-            <option value="resolved">Resolvido</option>
-            <option value="pending">Pendente</option>
-            <option value="escalated">Escalado</option>
-          </select>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">

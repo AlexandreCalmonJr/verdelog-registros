@@ -132,6 +132,93 @@ export const supabaseService = {
     if (error) throw error;
   },
 
+  // Sectors
+  async getSectors() {
+    checkClient();
+    const { data, error } = await supabase
+      .from('sectors')
+      .select('*')
+      .order('floor', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertSector(sector) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('sectors')
+      .upsert(sector)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteSector(sectorId) {
+    checkClient();
+    const { error } = await supabase
+      .from('sectors')
+      .delete()
+      .eq('id', sectorId);
+    if (error) throw error;
+  },
+
+  // Equipment
+  async getEquipment(sectorId = null) {
+    checkClient();
+    let query = supabase.from('equipment').select('*, sectors(name, floor)');
+    if (sectorId) {
+      query = query.eq('sector_id', sectorId);
+    }
+    const { data, error } = await query.order('name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertEquipment(equipment) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('equipment')
+      .upsert(equipment)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteEquipment(equipmentId) {
+    checkClient();
+    const { error } = await supabase
+      .from('equipment')
+      .delete()
+      .eq('id', equipmentId);
+    if (error) throw error;
+  },
+
+  // Maintenance Logs
+  async getMaintenanceLogs(equipmentId) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('maintenance_logs')
+      .select('*, profiles(name)')
+      .eq('equipment_id', equipmentId)
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async createMaintenanceLog(log) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('maintenance_logs')
+      .insert(log)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // Active Shift
   async getActiveShift(userId) {
     checkClient();
