@@ -14,9 +14,9 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'VerdeLog',
-          short_name: 'VerdeLog',
-          description: 'Sistema de Ponto e Chamados',
+          name: 'VerdeIT',
+          short_name: 'VerdeIT',
+          description: 'Gestão de TI, Inventário e Logística',
           theme_color: '#0a0f0d',
           background_color: '#0a0f0d',
           icons: [

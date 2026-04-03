@@ -45,7 +45,10 @@ export default function App() {
       console.log('Supabase auth property:', supabase.auth);
       console.log('Supabase auth type:', typeof supabase.auth);
       if (supabase.auth) {
-        console.log('Supabase auth keys:', Object.keys(supabase.auth));
+        const authKeys = Object.keys(supabase.auth);
+        console.log('Supabase auth keys:', authKeys);
+        console.log('onAuthStateChanged in authKeys:', authKeys.includes('onAuthStateChanged'));
+        console.log('type of onAuthStateChanged:', typeof supabase.auth.onAuthStateChanged);
       }
     }
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {

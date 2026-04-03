@@ -43,7 +43,7 @@ export default function Ponto({
       const ws = d.toISOString().split('T')[0];
       return l.dateISO >= ws;
     }).reduce((s, l) => s + l.total_horas, 0),
-    month: logs.filter(l => l.dateISO.startsWith(new Date().toISOString().substring(0, 7))).reduce((s, l) => s + l.total_horas, 0),
+    month: logs.filter(l => l.dateISO?.startsWith(new Date().toISOString().substring(0, 7))).reduce((s, l) => s + l.total_horas, 0),
   };
 
   return (
