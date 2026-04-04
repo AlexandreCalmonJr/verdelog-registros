@@ -39,8 +39,8 @@ export const supabaseService = {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
+      .maybeSingle();
+    if (error) throw error;
     return data;
   },
 
@@ -177,7 +177,7 @@ export const supabaseService = {
   // Equipment
   async getEquipment(sectorId = null) {
     checkClient();
-    let query = supabase.from('equipment').select('*, sectors(name, floor), profiles:assigned_user_id(name)');
+    let query = supabase.from('equipment').select('*, sectors(name, floor), assigned_user:profiles!assigned_user_id(name)');
     if (sectorId) {
       query = query.eq('sector_id', sectorId);
     }
@@ -265,7 +265,7 @@ export const supabaseService = {
     checkClient();
     const { data, error } = await supabase
       .from('equipment_movements')
-      .select('*, equipment(name, serial_number), from_sector:from_sector_id(name), to_sector:to_sector_id(name), profiles:user_id(name)')
+      .select('*, equipment(name, serial_number), from_sector:from_sector_id(name), to_sector:to_sector_id(name), user:profiles!user_id(name)')
       .order('date', { ascending: false });
     if (error) throw error;
     return data;
@@ -289,8 +289,8 @@ export const supabaseService = {
       .from('active_shifts')
       .select('*')
       .eq('user_id', userId)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
+      .maybeSingle();
+    if (error) throw error;
     return data;
   },
 

@@ -21,7 +21,7 @@ CREATE TABLE equipment (
   ram TEXT,
   storage TEXT,
   os TEXT,
-  assigned_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  assigned_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   specs JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
@@ -30,7 +30,7 @@ CREATE TABLE equipment (
 CREATE TABLE maintenance_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   description TEXT NOT NULL,
   cost NUMERIC DEFAULT 0,
   date DATE DEFAULT CURRENT_DATE,
@@ -55,7 +55,7 @@ CREATE TABLE equipment_movements (
   equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
   from_sector_id UUID REFERENCES sectors(id) ON DELETE SET NULL,
   to_sector_id UUID REFERENCES sectors(id) ON DELETE SET NULL,
-  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   reason TEXT,
   date TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );

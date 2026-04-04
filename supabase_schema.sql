@@ -51,7 +51,7 @@ ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_shifts ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Profiles
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Authenticated users can view all profiles" ON profiles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
@@ -68,7 +68,7 @@ CREATE POLICY "Users can update own tickets" ON tickets FOR UPDATE USING (auth.u
 CREATE POLICY "Users can delete own tickets" ON tickets FOR DELETE USING (auth.uid() = user_id);
 
 -- Policies for Active Shifts
-CREATE POLICY "Users can view own active shift" ON active_shifts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Authenticated users can view all active shifts" ON active_shifts FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Users can insert own active shift" ON active_shifts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete own active shift" ON active_shifts FOR DELETE USING (auth.uid() = user_id);
 

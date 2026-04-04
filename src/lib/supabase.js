@@ -55,19 +55,18 @@ const isValidUrl = (url) => {
 };
 
 if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
-  console.log('Initializing Supabase with URL:', supabaseUrl.substring(0, 15) + '...', 'Key length:', supabaseAnonKey.length);
   try {
     client = createClient(supabaseUrl, supabaseAnonKey);
-    console.log('Supabase client created successfully. Auth:', !!client.auth, 'Functions:', !!client.functions);
+    // Ensure auth is present
     if (!client.auth) {
-      console.error('Supabase client created but auth is missing! Keys:', Object.keys(client));
+      console.warn('Supabase auth is missing from client, falling back to mock.');
+      client = mockSupabase;
     }
   } catch (error) {
     console.error('Failed to create Supabase client:', error);
     client = mockSupabase;
   }
 } else {
-  console.error('Supabase credentials missing or invalid. URL:', supabaseUrl ? 'provided' : 'missing', 'Key:', supabaseAnonKey ? 'provided' : 'missing');
   client = mockSupabase;
 }
 

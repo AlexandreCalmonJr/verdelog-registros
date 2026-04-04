@@ -204,9 +204,9 @@ export default function Logistics({ user }) {
                   )}
                   <div className="mt-2 text-[0.65rem] text-text-dim flex items-center gap-1">
                     <div className="w-4 h-4 bg-surface rounded-full border border-border flex items-center justify-center text-[0.5rem] font-bold">
-                      {move.profiles?.name?.[0]}
+                      {move.user?.name?.[0]}
                     </div>
-                    Movido por {move.profiles?.name}
+                    Movido por {move.user?.name}
                   </div>
                 </div>
               ))}

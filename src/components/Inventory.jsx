@@ -349,10 +349,10 @@ export default function Inventory({ user }) {
                   <p className="text-[0.7rem] text-text-muted mb-2">{equip.brand} {equip.model} · SN: {equip.serial_number}</p>
                   
                   {/* Assigned User */}
-                  {equip.profiles && (
+                  {equip.assigned_user && (
                     <div className="flex items-center gap-1.5 text-[0.65rem] text-green bg-green/10 p-1.5 rounded-lg mb-2 inline-flex">
                       <UserIcon size={12} />
-                      Usuário: {equip.profiles.name}
+                      Usuário: {equip.assigned_user.name}
                     </div>
                   )}
 
