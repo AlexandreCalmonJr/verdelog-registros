@@ -86,7 +86,7 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
             {assignedEquipment.map(equip => (
-              <div key={equip.id} className="bg-surface/50 backdrop-blur-sm border border-border p-4 rounded-2xl flex items-center justify-between">
+              <div key={equip.id} className="bg-surface border border-border p-4 rounded-2xl flex items-center justify-between">
                 <div>
                   <div className="font-bold text-sm">{equip.name}</div>
                   <div className="text-[0.7rem] text-text-muted">{equip.brand} {equip.model} · SN: {equip.serial_number}</div>

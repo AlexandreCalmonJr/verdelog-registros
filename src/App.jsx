@@ -1,17 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
-import Ponto from './components/Ponto';
-import Chamados from './components/Chamados';
-import Historico from './components/Historico';
-import Relatorio from './components/Relatorio';
-import Inventory from './components/Inventory';
-import Logistics from './components/Logistics';
-import Home from './components/Home';
-import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
 import { validarCPF } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { supabaseService } from './lib/supabaseService';
+
+// Lazy load components
+const Home = lazy(() => import('./components/Home'));
+const Ponto = lazy(() => import('./components/Ponto'));
+const Chamados = lazy(() => import('./components/Chamados'));
+const Historico = lazy(() => import('./components/Historico'));
+const Relatorio = lazy(() => import('./components/Relatorio'));
+const Inventory = lazy(() => import('./components/Inventory'));
+const Logistics = lazy(() => import('./components/Logistics'));
+
+// Lazy load modals
+const StopShiftModal = lazy(() => import('./components/Modals').then(m => ({ default: m.StopShiftModal })));
+const TicketModal = lazy(() => import('./components/Modals').then(m => ({ default: m.TicketModal })));
+const ProfileModal = lazy(() => import('./components/Modals').then(m => ({ default: m.ProfileModal })));
+const LogDetailModal = lazy(() => import('./components/Modals').then(m => ({ default: m.LogDetailModal })));
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-12">
+    <div className="w-8 h-8 border-2 border-green border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -78,11 +91,28 @@ export default function App() {
 
   const loadUserData = async (userId) => {
     try {
-      const [p, l, t, s, e, sec] = await Promise.all([
+      // 1. Fetch critical data first (Profile and Active Shift)
+      const [p, s] = await Promise.all([
         supabaseService.getProfile(userId),
+        supabaseService.getActiveShift(userId)
+      ]);
+
+      setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
+      
+      if (s) {
+        setIsWorking(true);
+        setShiftStartTime(new Date(s.start_time));
+        setCurrentShiftId(s.id);
+      } else {
+        setIsWorking(false);
+        setShiftStartTime(null);
+        setCurrentShiftId(null);
+      }
+
+      // 2. Fetch non-critical data in the background
+      const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId),
         supabaseService.getTickets(userId),
-        supabaseService.getActiveShift(userId),
         supabaseService.getEquipment(),
         supabaseService.getSectors()
       ]);
@@ -92,7 +122,6 @@ export default function App() {
         tickets: (t || []).filter(ticket => ticket.ponto_id === log.id)
       }));
 
-      setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
       setLogs(logsWithTickets);
       setTickets(t || []);
       setEquipment(e || []);
@@ -108,15 +137,6 @@ export default function App() {
         .select('*', { count: 'exact', head: true });
       setActiveShiftsCount(count || 0);
       
-      if (s) {
-        setIsWorking(true);
-        setShiftStartTime(new Date(s.start_time));
-        setCurrentShiftId(s.id);
-      } else {
-        setIsWorking(false);
-        setShiftStartTime(null);
-        setCurrentShiftId(null);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -253,86 +273,88 @@ export default function App() {
       setActiveTab={setActiveTab}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
     >
-      {activeTab === 'home' && (
-        <Home 
-          user={user} 
-          onNavigate={setActiveTab} 
-          stats={stats} 
-          assignedEquipment={assignedEquipment}
+      <Suspense fallback={<LoadingSpinner />}>
+        {activeTab === 'home' && (
+          <Home 
+            user={user} 
+            onNavigate={setActiveTab} 
+            stats={stats} 
+            assignedEquipment={assignedEquipment}
+          />
+        )}
+
+        {activeTab === 'ponto' && (
+          <Ponto 
+            isWorking={isWorking}
+            shiftStartTime={shiftStartTime}
+            logs={logs}
+            tickets={tickets}
+            onStartShift={startShift}
+            onStopShift={() => setModals({ ...modals, stop: true })}
+            onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
+            onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
+          />
+        )}
+
+        {activeTab === 'inventario' && (
+          <Inventory user={user} />
+        )}
+
+        {activeTab === 'logistica' && (
+          <Logistics user={user} />
+        )}
+
+        {activeTab === 'chamados' && (
+          <Chamados 
+            tickets={tickets}
+            onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
+            onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
+            onDeleteTicket={deleteTicket}
+          />
+        )}
+
+        {activeTab === 'historico' && (
+          <Historico 
+            logs={logs}
+            onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
+          />
+        )}
+
+        {activeTab === 'relatorio' && (
+          <Relatorio 
+            logs={logs}
+            tickets={tickets}
+            profile={profile}
+          />
+        )}
+
+        {/* Modals */}
+        <StopShiftModal 
+          isOpen={modals.stop} 
+          onClose={() => setModals({ ...modals, stop: false })}
+          onConfirm={confirmStopShift}
         />
-      )}
-
-      {activeTab === 'ponto' && (
-        <Ponto 
-          isWorking={isWorking}
-          shiftStartTime={shiftStartTime}
-          logs={logs}
-          tickets={tickets}
-          onStartShift={startShift}
-          onStopShift={() => setModals({ ...modals, stop: true })}
-          onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
-          onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
+        <TicketModal 
+          isOpen={modals.ticket}
+          onClose={() => setModals({ ...modals, ticket: false })}
+          onSave={saveTicket}
+          ticket={selectedTicket}
+          equipment={equipment}
         />
-      )}
-
-      {activeTab === 'inventario' && (
-        <Inventory user={user} />
-      )}
-
-      {activeTab === 'logistica' && (
-        <Logistics user={user} />
-      )}
-
-      {activeTab === 'chamados' && (
-        <Chamados 
-          tickets={tickets}
-          onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
-          onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
-          onDeleteTicket={deleteTicket}
-        />
-      )}
-
-      {activeTab === 'historico' && (
-        <Historico 
-          logs={logs}
-          onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
-        />
-      )}
-
-      {activeTab === 'relatorio' && (
-        <Relatorio 
-          logs={logs}
-          tickets={tickets}
+        <ProfileModal 
+          isOpen={modals.profile}
+          onClose={() => setModals({ ...modals, profile: false })}
+          onSave={saveProfile}
+          onLogout={handleLogout}
           profile={profile}
+          userEmail={user.email}
         />
-      )}
-
-      {/* Modals */}
-      <StopShiftModal 
-        isOpen={modals.stop} 
-        onClose={() => setModals({ ...modals, stop: false })}
-        onConfirm={confirmStopShift}
-      />
-      <TicketModal 
-        isOpen={modals.ticket}
-        onClose={() => setModals({ ...modals, ticket: false })}
-        onSave={saveTicket}
-        ticket={selectedTicket}
-        equipment={equipment}
-      />
-      <ProfileModal 
-        isOpen={modals.profile}
-        onClose={() => setModals({ ...modals, profile: false })}
-        onSave={saveProfile}
-        onLogout={handleLogout}
-        profile={profile}
-        userEmail={user.email}
-      />
-      <LogDetailModal 
-        isOpen={modals.logDetail}
-        onClose={() => setModals({ ...modals, logDetail: false })}
-        log={selectedLog}
-      />
+        <LogDetailModal 
+          isOpen={modals.logDetail}
+          onClose={() => setModals({ ...modals, logDetail: false })}
+          log={selectedLog}
+        />
+      </Suspense>
     </Layout>
   );
 }

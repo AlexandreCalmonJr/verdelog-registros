@@ -130,13 +130,13 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] md:hidden"
+              className="fixed inset-0 bg-black/80 z-[150] md:hidden"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: 'tween', duration: 0.3 }}
               className="fixed top-0 left-0 bottom-0 w-[280px] bg-surface z-[200] md:hidden flex flex-col border-r border-border shadow-2xl"
             >
               <NavContent mobile />
@@ -146,7 +146,7 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
       </AnimatePresence>
 
       {/* Header - Mobile/Tablet Portrait Only */}
-      <nav className="md:hidden sticky top-0 z-[100] bg-[rgba(10,15,13,0.85)] backdrop-blur-2xl border-b border-border p-3 px-4 flex items-center justify-between">
+      <nav className="md:hidden sticky top-0 z-[100] bg-bg border-b border-border p-3 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
@@ -175,7 +175,7 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Desktop Top Bar */}
-        <header className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border bg-surface/30 backdrop-blur-sm shrink-0">
+        <header className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border bg-surface shrink-0">
           <div className="text-xs font-mono text-text-muted uppercase tracking-widest flex items-center gap-2">
             <span className="text-green/50">#</span> {activeTab.replace('_', ' ')} <span className="opacity-30 mx-2">|</span> {navDate}
           </div>
