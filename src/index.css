@@ -59,3 +59,11 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-border2 rounded-full;
 }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-green/20 rounded-full;
+}
