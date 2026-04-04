@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
-import { Cpu, Terminal } from 'lucide-react';
+import { Cpu, Terminal, Download } from 'lucide-react';
 
 export default function Auth({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -10,6 +10,25 @@ export default function Auth({ onLogin }) {
   const [cargo, setCargo] = useState('Técnico de TI');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -106,13 +125,24 @@ export default function Auth({ onLogin }) {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-4">
           <button 
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-[0.8rem] text-text-dim hover:text-green transition-colors"
           >
             {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem uma conta? Crie agora'}
           </button>
+
+          {deferredPrompt && (
+            <div className="pt-4 border-t border-border">
+              <button 
+                onClick={handleInstall}
+                className="w-full flex items-center justify-center gap-2 text-[0.8rem] text-green font-bold bg-green/10 p-2.5 rounded-lg hover:bg-green/20 transition-all"
+              >
+                <Download size={16} /> Instalar Aplicativo
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
