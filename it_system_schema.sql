@@ -21,6 +21,7 @@ CREATE TABLE equipment (
   ram TEXT,
   storage TEXT,
   os TEXT,
+  assigned_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   specs JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );

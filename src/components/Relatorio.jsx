@@ -54,7 +54,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.setTextColor(15, 25, 20);
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('VerdeLog', 15, 18);
+    doc.text('VerdeIT', 15, 18);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.text('Relatório de Atividade', 15, 27);
@@ -134,9 +134,9 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.setTextColor(...gray);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · VerdeLog — Uso Interno`, 105, 291, { align: 'center' });
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · VerdeIT — Gestão de TI`, 105, 291, { align: 'center' });
 
-    doc.save(`verdelog_${selectedMonth}.pdf`);
+    doc.save(`verdeit_${selectedMonth}.pdf`);
   };
 
   return (

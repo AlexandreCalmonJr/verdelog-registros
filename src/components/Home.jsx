@@ -12,7 +12,7 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 
-export default function Home({ user, onNavigate, stats }) {
+export default function Home({ user, onNavigate, stats, assignedEquipment }) {
   const menuItems = [
     {
       id: 'ponto',
@@ -76,6 +76,30 @@ export default function Home({ user, onNavigate, stats }) {
           Bem-vindo ao <span className="text-green font-bold">VerdeIT</span>. O que vamos gerenciar hoje?
         </p>
       </header>
+
+      {/* Assigned Equipment Section */}
+      {assignedEquipment && assignedEquipment.length > 0 && (
+        <section className="bg-green/5 border border-green/20 rounded-3xl p-6 relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-4 text-green">
+            <Monitor size={18} />
+            <h2 className="text-sm font-bold uppercase tracking-widest">Meu Equipamento</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+            {assignedEquipment.map(equip => (
+              <div key={equip.id} className="bg-surface/50 backdrop-blur-sm border border-border p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-sm">{equip.name}</div>
+                  <div className="text-[0.7rem] text-text-muted">{equip.brand} {equip.model} · SN: {equip.serial_number}</div>
+                </div>
+                <div className="text-[0.6rem] font-mono bg-green/20 text-green px-2 py-1 rounded-lg uppercase">
+                  {equip.status === 'active' ? 'Em Uso' : 'Manutenção'}
+                </div>
+              </div>
+            ))}
+          </div>
+          <Monitor className="absolute -right-8 -bottom-8 text-green/5" size={160} />
+        </section>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {menuItems.map((item, index) => (

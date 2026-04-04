@@ -44,6 +44,16 @@ export const supabaseService = {
     return data;
   },
 
+  async getAllProfiles() {
+    checkClient();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
   async upsertProfile(profile) {
     checkClient();
     const { data, error } = await supabase
@@ -167,7 +177,7 @@ export const supabaseService = {
   // Equipment
   async getEquipment(sectorId = null) {
     checkClient();
-    let query = supabase.from('equipment').select('*, sectors(name, floor)');
+    let query = supabase.from('equipment').select('*, sectors(name, floor), profiles:assigned_user_id(name)');
     if (sectorId) {
       query = query.eq('sector_id', sectorId);
     }

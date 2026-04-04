@@ -8,6 +8,7 @@ import 'jspdf-autotable';
 export default function Inventory({ user }) {
   const [sectors, setSectors] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sectors'); // sectors, equipment
   const [showSectorModal, setShowSectorModal] = useState(false);
@@ -25,12 +26,14 @@ export default function Inventory({ user }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [s, e] = await Promise.all([
+      const [s, e, p] = await Promise.all([
         supabaseService.getSectors(),
-        supabaseService.getEquipment()
+        supabaseService.getEquipment(),
+        supabaseService.getAllProfiles()
       ]);
       setSectors(s || []);
       setEquipment(e || []);
+      setProfiles(p || []);
     } catch (error) {
       console.error('Erro ao carregar inventário:', error);
     } finally {
@@ -97,6 +100,7 @@ export default function Inventory({ user }) {
       model: formData.get('model'),
       serial_number: formData.get('serial_number'),
       sector_id: formData.get('sector_id'),
+      assigned_user_id: formData.get('assigned_user_id') || null,
       status: formData.get('status'),
       cpu: formData.get('cpu'),
       ram: formData.get('ram'),
@@ -344,6 +348,14 @@ export default function Inventory({ user }) {
                   <h4 className="font-bold text-sm mb-1">{equip.name}</h4>
                   <p className="text-[0.7rem] text-text-muted mb-2">{equip.brand} {equip.model} · SN: {equip.serial_number}</p>
                   
+                  {/* Assigned User */}
+                  {equip.profiles && (
+                    <div className="flex items-center gap-1.5 text-[0.65rem] text-green bg-green/10 p-1.5 rounded-lg mb-2 inline-flex">
+                      <UserIcon size={12} />
+                      Usuário: {equip.profiles.name}
+                    </div>
+                  )}
+
                   {/* Technical Specs */}
                   {(equip.cpu || equip.ram || equip.storage) && (
                     <div className="grid grid-cols-2 gap-2 mb-3 bg-surface2/50 p-2 rounded-xl border border-border/50">
@@ -553,17 +565,26 @@ export default function Inventory({ user }) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Setor</label>
-                  <select name="sector_id" defaultValue={editingItem?.sector_id} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                    <option value="">Selecione um setor...</option>
-                    {sectors.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.floor === 0 ? 'Térreo' : `${s.floor}º Andar`})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Status</label>
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Setor</label>
+                    <select name="sector_id" defaultValue={editingItem?.sector_id} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                      <option value="">Selecione um setor...</option>
+                      {sectors.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.floor === 0 ? 'Térreo' : `${s.floor}º Andar`})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Usuário Responsável</label>
+                    <select name="assigned_user_id" defaultValue={editingItem?.assigned_user_id || ''} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                      <option value="">Nenhum (Disponível)</option>
+                      {profiles.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Status</label>
                   <select name="status" defaultValue={editingItem?.status || 'active'} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
                     <option value="active">Ativo</option>
                     <option value="maintenance">Manutenção</option>

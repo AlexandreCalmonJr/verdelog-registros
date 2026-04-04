@@ -22,6 +22,7 @@ export default function App() {
   const [equipment, setEquipment] = useState([]);
   const [sectors, setSectors] = useState([]);
   const [activeShiftsCount, setActiveShiftsCount] = useState(0);
+  const [assignedEquipment, setAssignedEquipment] = useState([]);
   const [isWorking, setIsWorking] = useState(false);
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
@@ -96,6 +97,10 @@ export default function App() {
       setTickets(t || []);
       setEquipment(e || []);
       setSectors(sec || []);
+
+      // Filter equipment assigned to this user
+      const assigned = (e || []).filter(item => item.assigned_user_id === userId);
+      setAssignedEquipment(assigned);
       
       // Fetch active shifts count for home stats
       const { count } = await supabase
@@ -249,7 +254,12 @@ export default function App() {
       onOpenProfile={() => setModals({ ...modals, profile: true })}
     >
       {activeTab === 'home' && (
-        <Home user={user} onNavigate={setActiveTab} stats={stats} />
+        <Home 
+          user={user} 
+          onNavigate={setActiveTab} 
+          stats={stats} 
+          assignedEquipment={assignedEquipment}
+        />
       )}
 
       {activeTab === 'ponto' && (
