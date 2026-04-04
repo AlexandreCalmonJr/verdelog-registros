@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { 
   Clock, 
   Monitor, 
@@ -103,11 +102,8 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {menuItems.map((item, index) => (
-          <motion.button
+          <button
             key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
             onClick={() => onNavigate(item.id)}
             className={`flex flex-col items-start p-6 rounded-3xl border ${item.borderColor} ${item.color} hover:scale-[1.02] transition-all text-left relative group overflow-hidden`}
           >
@@ -128,7 +124,7 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
               {React.cloneElement(item.icon, { size: 120 })}
             </div>
-          </motion.button>
+          </button>
         ))}
       </div>
 

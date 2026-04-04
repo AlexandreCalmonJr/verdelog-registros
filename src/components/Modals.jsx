@@ -1,24 +1,16 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { maskCPF, formatHours } from '../lib/utils';
 import { X } from 'lucide-react';
 
 const Modal = ({ isOpen, onClose, title, children }) => (
-  <AnimatePresence>
+  <>
     {isOpen && (
       <div className="fixed inset-0 z-[500] flex items-end justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
           onClick={onClose}
           className="absolute inset-0 bg-black/80"
         />
-        <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        <div
           className="relative w-full max-w-[600px] bg-surface border border-border2 rounded-t-[24px] p-6 pb-10 max-h-[92vh] overflow-y-auto no-scrollbar"
         >
           <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
@@ -29,10 +21,10 @@ const Modal = ({ isOpen, onClose, title, children }) => (
             </button>
           </div>
           {children}
-        </motion.div>
+        </div>
       </div>
     )}
-  </AnimatePresence>
+  </>
 );
 
 export function StopShiftModal({ 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseService } from '../lib/supabaseService';
 import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -396,210 +395,195 @@ export default function Inventory({ user }) {
       )}
 
       {/* Maintenance Modal */}
-      <AnimatePresence>
-        {showMaintenanceModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface border border-border rounded-3xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-lg font-bold">Histórico de Manutenção</h3>
-                  <p className="text-xs text-text-muted">{editingItem?.name} · {editingItem?.brand} {editingItem?.model}</p>
-                </div>
-                <button onClick={() => setShowMaintenanceModal(false)} className="p-2 hover:bg-surface2 rounded-full transition-all"><X size={20} /></button>
+      {showMaintenanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80">
+          <div 
+            className="bg-surface border border-border rounded-3xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold">Histórico de Manutenção</h3>
+                <p className="text-xs text-text-muted">{editingItem?.name} · {editingItem?.brand} {editingItem?.model}</p>
               </div>
+              <button onClick={() => setShowMaintenanceModal(false)} className="p-2 hover:bg-surface2 rounded-full transition-all"><X size={20} /></button>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Nova Manutenção</h4>
-                  <form onSubmit={handleSaveMaintenance} className="space-y-3">
-                    <div>
-                      <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Data</label>
-                      <input type="date" name="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" />
-                    </div>
-                    <div>
-                      <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Custo (R$)</label>
-                      <input type="number" step="0.01" name="cost" defaultValue="0" className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" />
-                    </div>
-                    <div>
-                      <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Descrição do Serviço</label>
-                      <textarea name="description" required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green h-24 resize-none" placeholder="O que foi feito?" />
-                    </div>
-                    <button type="submit" className="w-full bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Registrar Manutenção</button>
-                  </form>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Registros Anteriores</h4>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                    {maintenanceLogs.map(log => (
-                      <div key={log.id} className="bg-surface2 border border-border rounded-xl p-3">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-[0.7rem] font-bold text-green">{new Date(log.date).toLocaleDateString('pt-BR')}</span>
-                          <span className="text-[0.7rem] font-mono text-text-muted">R$ {log.cost.toFixed(2)}</span>
-                        </div>
-                        <p className="text-[0.8rem] text-text leading-relaxed">{log.description}</p>
-                        <div className="mt-2 text-[0.6rem] text-text-muted flex items-center gap-1">
-                          <UserIcon size={10} /> {log.profiles?.name || 'Técnico'}
-                        </div>
-                      </div>
-                    ))}
-                    {maintenanceLogs.length === 0 && (
-                      <div className="text-center py-8 text-text-muted italic text-sm">Nenhum registro de manutenção.</div>
-                    )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Nova Manutenção</h4>
+                <form onSubmit={handleSaveMaintenance} className="space-y-3">
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Data</label>
+                    <input type="date" name="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" />
                   </div>
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Custo (R$)</label>
+                    <input type="number" step="0.01" name="cost" defaultValue="0" className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Descrição do Serviço</label>
+                    <textarea name="description" required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green h-24 resize-none" placeholder="O que foi feito?" />
+                  </div>
+                  <button type="submit" className="w-full bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Registrar Manutenção</button>
+                </form>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Registros Anteriores</h4>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {maintenanceLogs.map(log => (
+                    <div key={log.id} className="bg-surface2 border border-border rounded-xl p-3">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-[0.7rem] font-bold text-green">{new Date(log.date).toLocaleDateString('pt-BR')}</span>
+                        <span className="text-[0.7rem] font-mono text-text-muted">R$ {log.cost.toFixed(2)}</span>
+                      </div>
+                      <p className="text-[0.8rem] text-text leading-relaxed">{log.description}</p>
+                      <div className="mt-2 text-[0.6rem] text-text-muted flex items-center gap-1">
+                        <UserIcon size={10} /> {log.profiles?.name || 'Técnico'}
+                      </div>
+                    </div>
+                  ))}
+                  {maintenanceLogs.length === 0 && (
+                    <div className="text-center py-8 text-text-muted italic text-sm">Nenhum registro de manutenção.</div>
+                  )}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Sector Modal */}
-      <AnimatePresence>
-        {showSectorModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl"
-            >
-              <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Setor' : 'Novo Setor'}</h3>
-              <form onSubmit={handleSaveSector} className="space-y-4">
-                <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome do Setor</label>
-                  <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Financeiro, TI, RH" />
-                </div>
-                <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Andar</label>
-                  <select name="floor" defaultValue={editingItem?.floor || 0} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green">
-                    <option value={0}>Térreo</option>
-                    <option value={1}>1º Andar</option>
-                    <option value={2}>2º Andar</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Descrição (Opcional)</label>
-                  <textarea name="description" defaultValue={editingItem?.description} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green h-24 resize-none" placeholder="Breve descrição do setor..." />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowSectorModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
-                  <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
-                </div>
-              </form>
-            </motion.div>
+      {showSectorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80">
+          <div 
+            className="bg-surface border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl"
+          >
+            <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Setor' : 'Novo Setor'}</h3>
+            <form onSubmit={handleSaveSector} className="space-y-4">
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome do Setor</label>
+                <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Financeiro, TI, RH" />
+              </div>
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Andar</label>
+                <select name="floor" defaultValue={editingItem?.floor || 0} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green">
+                  <option value={0}>Térreo</option>
+                  <option value={1}>1º Andar</option>
+                  <option value={2}>2º Andar</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Descrição (Opcional)</label>
+                <textarea name="description" defaultValue={editingItem?.description} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green h-24 resize-none" placeholder="Breve descrição do setor..." />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowSectorModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Equipment Modal */}
-      <AnimatePresence>
-        {showEquipModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface border border-border rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
-            >
-              <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Equipamento' : 'Novo Equipamento'}</h3>
-              <form onSubmit={handleSaveEquip} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome/ID</label>
-                    <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="PC-FIN-01" />
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Tipo</label>
-                    <select name="type" defaultValue={editingItem?.type || 'PC'} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                      <option value="PC">Desktop</option>
-                      <option value="Laptop">Notebook</option>
-                      <option value="Printer">Impressora</option>
-                      <option value="Server">Servidor</option>
-                      <option value="Network">Rede (Switch/Router)</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Marca</label>
-                    <input name="brand" defaultValue={editingItem?.brand} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Dell, HP, etc" />
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Modelo</label>
-                    <input name="model" defaultValue={editingItem?.model} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Optiplex 3080" />
-                  </div>
+      {showEquipModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80">
+          <div 
+            className="bg-surface border border-border rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Equipamento' : 'Novo Equipamento'}</h3>
+            <form onSubmit={handleSaveEquip} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome/ID</label>
+                  <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="PC-FIN-01" />
                 </div>
                 <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nº de Série</label>
-                  <input name="serial_number" defaultValue={editingItem?.serial_number} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="TAG / Serial" />
-                </div>
-
-                {/* Technical Specs Section */}
-                <div className="bg-surface2/50 p-4 rounded-2xl border border-border space-y-3">
-                  <h4 className="text-[0.65rem] font-bold text-text-muted uppercase tracking-wider">Especificações Técnicas</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[0.65rem] text-text-dim mb-1">Processador (CPU)</label>
-                      <input name="cpu" defaultValue={editingItem?.cpu} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="i5-10400, Ryzen 5" />
-                    </div>
-                    <div>
-                      <label className="block text-[0.65rem] text-text-dim mb-1">Memória (RAM)</label>
-                      <input name="ram" defaultValue={editingItem?.ram} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="8GB, 16GB DDR4" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[0.65rem] text-text-dim mb-1">Armazenamento</label>
-                      <input name="storage" defaultValue={editingItem?.storage} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="256GB SSD, 1TB HDD" />
-                    </div>
-                    <div>
-                      <label className="block text-[0.65rem] text-text-dim mb-1">Sist. Operacional</label>
-                      <input name="os" defaultValue={editingItem?.os} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="Windows 11, Ubuntu 22.04" />
-                    </div>
-                  </div>
-                </div>
-
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Setor</label>
-                    <select name="sector_id" defaultValue={editingItem?.sector_id} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                      <option value="">Selecione um setor...</option>
-                      {sectors.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.floor === 0 ? 'Térreo' : `${s.floor}º Andar`})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Usuário Responsável</label>
-                    <select name="assigned_user_id" defaultValue={editingItem?.assigned_user_id || ''} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                      <option value="">Nenhum (Disponível)</option>
-                      {profiles.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Status</label>
-                  <select name="status" defaultValue={editingItem?.status || 'active'} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                    <option value="active">Ativo</option>
-                    <option value="maintenance">Manutenção</option>
-                    <option value="retired">Retirado / Sucata</option>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Tipo</label>
+                  <select name="type" defaultValue={editingItem?.type || 'PC'} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                    <option value="PC">Desktop</option>
+                    <option value="Laptop">Notebook</option>
+                    <option value="Printer">Impressora</option>
+                    <option value="Server">Servidor</option>
+                    <option value="Network">Rede (Switch/Router)</option>
                   </select>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowEquipModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
-                  <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Marca</label>
+                  <input name="brand" defaultValue={editingItem?.brand} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Dell, HP, etc" />
                 </div>
-              </form>
-            </motion.div>
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Modelo</label>
+                  <input name="model" defaultValue={editingItem?.model} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Optiplex 3080" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nº de Série</label>
+                <input name="serial_number" defaultValue={editingItem?.serial_number} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="TAG / Serial" />
+              </div>
+
+              {/* Technical Specs Section */}
+              <div className="bg-surface2/50 p-4 rounded-2xl border border-border space-y-3">
+                <h4 className="text-[0.65rem] font-bold text-text-muted uppercase tracking-wider">Especificações Técnicas</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[0.65rem] text-text-dim mb-1">Processador (CPU)</label>
+                    <input name="cpu" defaultValue={editingItem?.cpu} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="i5-10400, Ryzen 5" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.65rem] text-text-dim mb-1">Memória (RAM)</label>
+                    <input name="ram" defaultValue={editingItem?.ram} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="8GB, 16GB DDR4" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[0.65rem] text-text-dim mb-1">Armazenamento</label>
+                    <input name="storage" defaultValue={editingItem?.storage} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="256GB SSD, 1TB HDD" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.65rem] text-text-dim mb-1">Sist. Operacional</label>
+                    <input name="os" defaultValue={editingItem?.os} className="w-full bg-surface2 border border-border rounded-xl p-2 text-[0.8rem] outline-none focus:border-green" placeholder="Windows 11, Ubuntu 22.04" />
+                  </div>
+                </div>
+              </div>
+
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Setor</label>
+                  <select name="sector_id" defaultValue={editingItem?.sector_id} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                    <option value="">Selecione um setor...</option>
+                    {sectors.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.floor === 0 ? 'Térreo' : `${s.floor}º Andar`})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Usuário Responsável</label>
+                  <select name="assigned_user_id" defaultValue={editingItem?.assigned_user_id || ''} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                    <option value="">Nenhum (Disponível)</option>
+                    {profiles.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Status</label>
+                <select name="status" defaultValue={editingItem?.status || 'active'} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
+                  <option value="active">Ativo</option>
+                  <option value="maintenance">Manutenção</option>
+                  <option value="retired">Retirado / Sucata</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowEquipModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,7 +12,6 @@ import {
   X,
   History
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 export default function Logistics({ user }) {
   const [supplies, setSupplies] = useState([]);
@@ -219,60 +218,55 @@ export default function Logistics({ user }) {
       )}
 
       {/* Supply Modal */}
-      <AnimatePresence>
-        {showSupplyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl"
-            >
-              <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Insumo' : 'Novo Insumo'}</h3>
-              <form onSubmit={handleSaveSupply} className="space-y-4">
+      {showSupplyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80">
+          <div 
+            className="bg-surface border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl"
+          >
+            <h3 className="text-lg font-bold mb-4">{editingItem ? 'Editar Insumo' : 'Novo Insumo'}</h3>
+            <form onSubmit={handleSaveSupply} className="space-y-4">
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome do Item</label>
+                <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Mouse USB, Cabo HDMI" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nome do Item</label>
-                  <input name="name" defaultValue={editingItem?.name} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Mouse USB, Cabo HDMI" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Categoria</label>
-                    <select name="category" defaultValue={editingItem?.category || 'Periféricos'} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green">
-                      <option value="Periféricos">Periféricos</option>
-                      <option value="Cabos">Cabos</option>
-                      <option value="Componentes">Componentes</option>
-                      <option value="Suprimentos">Suprimentos</option>
-                      <option value="Outros">Outros</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Unidade</label>
-                    <input name="unit" defaultValue={editingItem?.unit || 'un'} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="un, m, kg" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Quantidade Atual</label>
-                    <input type="number" name="quantity" defaultValue={editingItem?.quantity || 0} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" />
-                  </div>
-                  <div>
-                    <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Qtd. Mínima</label>
-                    <input type="number" name="min_quantity" defaultValue={editingItem?.min_quantity || 5} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" />
-                  </div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Categoria</label>
+                  <select name="category" defaultValue={editingItem?.category || 'Periféricos'} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green">
+                    <option value="Periféricos">Periféricos</option>
+                    <option value="Cabos">Cabos</option>
+                    <option value="Componentes">Componentes</option>
+                    <option value="Suprimentos">Suprimentos</option>
+                    <option value="Outros">Outros</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Localização</label>
-                  <input name="location" defaultValue={editingItem?.location} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Armário A, Gaveta 2" />
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Unidade</label>
+                  <input name="unit" defaultValue={editingItem?.unit || 'un'} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="un, m, kg" />
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowSupplyModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
-                  <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Quantidade Atual</label>
+                  <input type="number" name="quantity" defaultValue={editingItem?.quantity || 0} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" />
                 </div>
-              </form>
-            </motion.div>
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Qtd. Mínima</label>
+                  <input type="number" name="min_quantity" defaultValue={editingItem?.min_quantity || 5} required className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Localização</label>
+                <input name="location" defaultValue={editingItem?.location} className="w-full bg-surface2 border border-border rounded-xl p-3 text-sm outline-none focus:border-green" placeholder="Ex: Armário A, Gaveta 2" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowSupplyModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

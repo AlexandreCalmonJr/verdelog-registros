@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
 import { Cpu, Terminal, Download } from 'lucide-react';
 
@@ -55,9 +54,7 @@ export default function Auth({ onLogin }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(0,200,150,0.08)_0%,transparent_70%)]">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div 
         className="w-full max-w-[380px] bg-surface border border-border2 rounded-[20px] p-10 shadow-[0_0_60px_rgba(0,200,150,0.06),0_2px_4px_rgba(0,0,0,0.4)]"
       >
         <div className="w-12 h-12 bg-gradient-to-br from-green to-[#00ffa3] rounded-[14px] flex items-center justify-center mb-6 shadow-[0_0_24px_rgba(0,200,150,0.35)] relative overflow-hidden group">
@@ -144,7 +141,7 @@ export default function Auth({ onLogin }) {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

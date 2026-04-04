@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Clock, 
   ClipboardList, 
@@ -122,28 +121,19 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
       </aside>
 
       {/* Mobile Drawer Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 z-[150] md:hidden"
-            />
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-0 left-0 bottom-0 w-[280px] bg-surface z-[200] md:hidden flex flex-col border-r border-border shadow-2xl"
-            >
-              <NavContent mobile />
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      {isMobileMenuOpen && (
+        <>
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/80 z-[150] md:hidden"
+          />
+          <aside
+            className="fixed top-0 left-0 bottom-0 w-[280px] bg-surface z-[200] md:hidden flex flex-col border-r border-border shadow-2xl"
+          >
+            <NavContent mobile />
+          </aside>
+        </>
+      )}
 
       {/* Header - Mobile/Tablet Portrait Only */}
       <nav className="md:hidden sticky top-0 z-[100] bg-bg border-b border-border p-3 px-4 flex items-center justify-between">

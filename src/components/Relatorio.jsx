@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { formatHours, formatMonthLabel, maskCPF } from '../lib/utils';
-import { motion } from 'motion/react';
 import { FileDown, Table, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 

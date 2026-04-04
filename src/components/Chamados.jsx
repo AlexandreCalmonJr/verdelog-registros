@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
 import { Plus, Search, Pencil, Trash2, ClipboardList } from 'lucide-react';
 
 export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket }) {

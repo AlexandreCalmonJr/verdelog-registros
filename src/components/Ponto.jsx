@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { formatHours } from '../lib/utils';
-import { motion } from 'motion/react';
 import { Play, Square, Plus, FileClock } from 'lucide-react';
 
 export default function Ponto({ 
@@ -48,8 +47,7 @@ export default function Ponto({
 
   return (
     <div className="space-y-4">
-      <motion.div 
-        layout
+      <div 
         className={`bg-surface border border-border rounded-2xl p-5 transition-all ${isWorking ? 'working-glow border-border2' : 'shadow-[0_0_30px_rgba(0,200,150,0.07)]'}`}
       >
         <div className="flex items-center justify-between mb-5">
@@ -80,9 +78,8 @@ export default function Ponto({
               <span className="font-mono text-green">{elapsed}</span>
             </div>
             <div className="h-1 bg-surface2 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
+              <div 
+                style={{ width: `${progress}%` }}
                 className="h-full bg-gradient-to-r from-green to-[#00ffa3] rounded-full"
               />
             </div>
@@ -108,7 +105,7 @@ export default function Ponto({
             <Square size={20} fill="currentColor" /> Encerrar Turno
           </button>
         )}
-      </motion.div>
+      </div>
 
       <div className="bg-surface border border-border rounded-2xl p-4">
         <div className="grid grid-cols-3 gap-2 text-center">

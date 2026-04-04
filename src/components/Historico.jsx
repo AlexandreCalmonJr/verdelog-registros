@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { formatHours, formatMonthLabel } from '../lib/utils';
-import { motion } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 
 export default function Historico({ logs, onViewLog }) {
