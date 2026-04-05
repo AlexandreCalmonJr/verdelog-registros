@@ -1,4 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { validarCPF } from './lib/utils';
@@ -42,6 +44,12 @@ export default function App() {
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Module Visibility State
   const [enabledModules, setEnabledModules] = useState(() => {
@@ -182,7 +190,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    if (isWorking) return alert('Encerre o turno antes de sair');
+    if (isWorking) return showToast('Encerre o turno antes de sair', 'error');
     await supabaseService.signOut();
     setModals({ ...modals, profile: false });
   };
@@ -194,8 +202,9 @@ export default function App() {
       setIsWorking(true);
       setShiftStartTime(new Date(shift.start_time));
       setCurrentShiftId(shift.id);
+      showToast('Turno iniciado com sucesso!');
     } catch (error) {
-      alert('Erro ao iniciar turno: ' + error.message);
+      showToast('Erro ao iniciar turno: ' + error.message, 'error');
     }
   };
 
@@ -225,8 +234,9 @@ export default function App() {
       setShiftStartTime(null);
       setCurrentShiftId(null);
       setModals({ ...modals, stop: false });
+      showToast('Turno encerrado com sucesso!');
     } catch (error) {
-      alert('Erro ao encerrar turno: ' + error.message);
+      showToast('Erro ao encerrar turno: ' + error.message, 'error');
     }
   };
 
@@ -245,6 +255,11 @@ export default function App() {
         hora: data.hora || now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       };
 
+      if (data.status === 'resolved' && !data.data_fim) {
+        ticketData.data_fim = now.toLocaleDateString('pt-BR');
+        ticketData.hora_fim = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+
       if (selectedTicket) {
         ticketData.id = selectedTicket.id;
       }
@@ -253,8 +268,9 @@ export default function App() {
       await loadUserData(user.id);
       setModals({ ...modals, ticket: false });
       setSelectedTicket(null);
+      showToast('Chamado salvo com sucesso!');
     } catch (error) {
-      alert('Erro ao salvar chamado: ' + error.message);
+      showToast('Erro ao salvar chamado: ' + error.message, 'error');
     }
   };
 
@@ -264,8 +280,9 @@ export default function App() {
     try {
       await supabaseService.deleteTicket(id);
       await loadUserData(user.id);
+      showToast('Chamado excluído!');
     } catch (error) {
-      alert('Erro ao excluir chamado: ' + error.message);
+      showToast('Erro ao excluir chamado: ' + error.message, 'error');
     }
   };
 
@@ -277,8 +294,9 @@ export default function App() {
       await supabaseService.upsertProfile({ ...p, id: user.id });
       setProfile(p);
       setModals({ ...modals, profile: false });
+      showToast('Perfil atualizado!');
     } catch (error) {
-      alert('Erro ao salvar perfil: ' + error.message);
+      showToast('Erro ao salvar perfil: ' + error.message, 'error');
     }
   };
 
@@ -336,6 +354,7 @@ export default function App() {
               setSelectedTicket({ equipment_id: equipId }); 
               setModals({ ...modals, ticket: true }); 
             }} 
+            showToast={showToast}
           />
         )}
 
@@ -405,6 +424,30 @@ export default function App() {
           log={selectedLog}
         />
       </Suspense>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[1000] flex items-center justify-center"
+          >
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border ${
+              toast.type === 'error' 
+                ? 'bg-red/10 border-red/20 text-red' 
+                : 'bg-green/10 border-green/20 text-green'
+            } backdrop-blur-xl min-w-[280px]`}>
+              {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+              <span className="text-sm font-bold flex-1">{toast.message}</span>
+              <button onClick={() => setToast(null)} className="p-1 hover:bg-white/10 rounded-lg">
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }

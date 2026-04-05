@@ -68,11 +68,22 @@ export function TicketModal({
   const [formData, setFormData] = React.useState({
     ref: '', cliente: '', description: '', status: 'open', equipment_id: ''
   });
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (ticket) setFormData({ ...ticket, equipment_id: ticket.equipment_id || '' });
     else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '' });
+    setSaving(false);
   }, [ticket, isOpen]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={ticket ? 'Editar Chamado' : 'Novo Chamado'}>
@@ -137,7 +148,13 @@ export function TicketModal({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <button onClick={onClose} className="bg-surface border border-border text-text-dim font-semibold p-3 rounded-lg hover:bg-surface2 transition-all">Cancelar</button>
-        <button onClick={() => onSave(formData)} className="bg-green text-bg font-semibold p-3 rounded-lg hover:bg-green-dim transition-all">Salvar</button>
+        <button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-green text-bg font-semibold p-3 rounded-lg hover:bg-green-dim transition-all disabled:opacity-50"
+        >
+          {saving ? 'Salvando...' : 'Salvar'}
+        </button>
       </div>
     </Modal>
   );

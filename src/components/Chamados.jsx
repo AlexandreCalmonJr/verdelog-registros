@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Pencil, Trash2, ClipboardList } from 'lucide-react';
 
 export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket }) {
@@ -52,46 +53,63 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
       </div>
 
       <div className="space-y-3">
-        {filteredTickets.length > 0 ? (
-          filteredTickets.map(t => (
-            <div key={t.id} className="bg-surface border border-border rounded-2xl p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
-                    {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
+        <AnimatePresence>
+          {filteredTickets.length > 0 ? (
+            filteredTickets.map((t) => (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                key={t.id} 
+                className="bg-surface border border-border rounded-2xl p-4"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
+                      {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
+                    </div>
+                    <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
                   </div>
-                  <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
+                  <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
+                    {statusMap[t.status].label}
+                  </span>
                 </div>
-                <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
-                  {statusMap[t.status].label}
-                </span>
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
-                <span className="font-mono text-[0.7rem] text-text-muted">{t.dateDisplay} {t.hora}</span>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => onEditTicket(t)}
-                    className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button 
-                    onClick={() => onDeleteTicket(t.id)}
-                    className="p-2 rounded-lg border border-border text-red/60 hover:text-red hover:bg-red/10 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
+                  <div className="flex flex-col">
+                    <span className="font-mono text-[0.7rem] text-text-muted">Aberto: {t.dateDisplay} {t.hora}</span>
+                    {t.data_fim && (
+                      <span className="font-mono text-[0.7rem] text-green">Resolvido: {t.data_fim} {t.hora_fim}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => onEditTicket(t)}
+                      className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button 
+                      onClick={() => onDeleteTicket(t.id)}
+                      className="p-2 rounded-lg border border-border text-red/60 hover:text-red hover:bg-red/10 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12 text-text-muted flex flex-col items-center gap-3 opacity-50">
-            <ClipboardList size={40} />
-            <p className="text-[0.85rem]">Sem chamados encontrados</p>
-          </div>
-        )}
+              </motion.div>
+            ))
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12 text-text-muted flex flex-col items-center gap-3 opacity-50"
+            >
+              <ClipboardList size={40} />
+              <p className="text-[0.85rem]">Sem chamados encontrados</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

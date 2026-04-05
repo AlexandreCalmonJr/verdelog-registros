@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
 import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-export default function Inventory({ user, onNewTicket }) {
+export default function Inventory({ user, onNewTicket, showToast }) {
   const [sectors, setSectors] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('sectors'); // sectors, equipment
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [showEquipModal, setShowEquipModal] = useState(false);
@@ -56,6 +58,7 @@ export default function Inventory({ user, onNewTicket }) {
 
   const handleSaveMaintenance = async (e) => {
     e.preventDefault();
+    setSaving(true);
     const formData = new FormData(e.target);
     const log = {
       equipment_id: editingItem.id,
@@ -69,13 +72,17 @@ export default function Inventory({ user, onNewTicket }) {
       await supabaseService.createMaintenanceLog(log);
       fetchMaintenance(editingItem.id);
       e.target.reset();
+      showToast('Manutenção registrada!');
     } catch (error) {
-      alert('Erro ao salvar manutenção');
+      showToast('Erro ao salvar manutenção', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSaveSector = async (e) => {
     e.preventDefault();
+    setSaving(true);
     const formData = new FormData(e.target);
     const sector = {
       name: formData.get('name'),
@@ -89,13 +96,17 @@ export default function Inventory({ user, onNewTicket }) {
       setShowSectorModal(false);
       setEditingItem(null);
       fetchData();
+      showToast('Setor salvo!');
     } catch (error) {
-      alert('Erro ao salvar setor');
+      showToast('Erro ao salvar setor', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSaveEquip = async (e) => {
     e.preventDefault();
+    setSaving(true);
     const formData = new FormData(e.target);
     const equip = {
       name: formData.get('name'),
@@ -118,29 +129,40 @@ export default function Inventory({ user, onNewTicket }) {
       setShowEquipModal(false);
       setEditingItem(null);
       fetchData();
+      showToast('Equipamento salvo!');
     } catch (error) {
       console.error('Erro ao salvar equipamento:', error);
-      alert(`Erro ao salvar equipamento: ${error.message || 'Verifique se o número de série é único.'}`);
+      showToast(`Erro ao salvar equipamento: ${error.message || 'Verifique se o número de série é único.'}`, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDeleteSector = async (id) => {
     if (!confirm('Excluir este setor excluirá todos os equipamentos vinculados. Continuar?')) return;
+    setSaving(true);
     try {
       await supabaseService.deleteSector(id);
       fetchData();
+      showToast('Setor excluído!');
     } catch (error) {
-      alert('Erro ao excluir setor');
+      showToast('Erro ao excluir setor', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDeleteEquip = async (id) => {
     if (!confirm('Excluir este equipamento?')) return;
+    setSaving(true);
     try {
       await supabaseService.deleteEquipment(id);
       fetchData();
+      showToast('Equipamento excluído!');
     } catch (error) {
-      alert('Erro ao excluir equipamento');
+      showToast('Erro ao excluir equipamento', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -276,7 +298,12 @@ export default function Inventory({ user, onNewTicket }) {
                 </div>
                 <div className="space-y-3">
                   {sectors.filter(s => s.floor === floor).map(sector => (
-                    <div key={sector.id} className="flex items-center justify-between p-3 bg-surface2 rounded-xl border border-border hover:border-green/30 transition-all group">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      key={sector.id} 
+                      className="flex items-center justify-between p-3 bg-surface2 rounded-xl border border-border hover:border-green/30 transition-all group"
+                    >
                       <div>
                         <div className="font-semibold text-sm">{sector.name}</div>
                         <div className="text-[0.7rem] text-text-muted">{sector.description || 'Sem descrição'}</div>
@@ -285,7 +312,7 @@ export default function Inventory({ user, onNewTicket }) {
                         <button onClick={() => { setEditingItem(sector); setShowSectorModal(true); }} className="p-1.5 text-text-muted hover:text-green"><Edit2 size={14} /></button>
                         <button onClick={() => handleDeleteSector(sector.id)} className="p-1.5 text-text-muted hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                   {sectors.filter(s => s.floor === floor).length === 0 && (
                     <div className="text-center py-4 text-[0.75rem] text-text-muted italic">Nenhum setor cadastrado</div>
@@ -329,8 +356,13 @@ export default function Inventory({ user, onNewTicket }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredEquip.map(equip => (
-              <div key={equip.id} className="bg-surface border border-border rounded-2xl p-4 hover:border-green/40 transition-all group relative overflow-hidden">
+            {filteredEquip.map((equip) => (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                key={equip.id} 
+                className="bg-surface border border-border rounded-2xl p-4 hover:border-green/40 transition-all group relative overflow-hidden"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className="p-2 bg-green/10 text-green rounded-lg">
                     <Monitor size={20} />
@@ -396,8 +428,8 @@ export default function Inventory({ user, onNewTicket }) {
                     <button onClick={() => handleDeleteEquip(equip.id)} className="p-1.5 text-text-muted hover:text-red-500"><Trash2 size={14} /></button>
                   </div>
                 </div>
-              </div>
-            ))}
+              </motion.div>
+                  ))}
             {filteredEquip.length === 0 && (
               <div className="col-span-full py-12 text-center text-text-muted flex flex-col items-center gap-3 opacity-50">
                 <Monitor size={48} />
@@ -438,7 +470,13 @@ export default function Inventory({ user, onNewTicket }) {
                     <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Descrição do Serviço</label>
                     <textarea name="description" required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green h-24 resize-none" placeholder="O que foi feito?" />
                   </div>
-                  <button type="submit" className="w-full bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Registrar Manutenção</button>
+                  <button 
+                    type="submit" 
+                    disabled={saving}
+                    className="w-full bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20 disabled:opacity-50"
+                  >
+                    {saving ? 'Salvando...' : 'Registrar Manutenção'}
+                  </button>
                 </form>
               </div>
 
@@ -521,7 +559,13 @@ export default function Inventory({ user, onNewTicket }) {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowSectorModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20 disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </button>
               </div>
             </form>
           </div>
@@ -620,7 +664,13 @@ export default function Inventory({ user, onNewTicket }) {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowEquipModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20">Salvar</button>
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20 disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </button>
               </div>
             </form>
           </div>

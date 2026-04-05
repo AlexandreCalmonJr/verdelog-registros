@@ -10,7 +10,8 @@ import {
   ClipboardList, 
   FileText,
   History,
-  Info
+  Info,
+  BookOpen
 } from 'lucide-react';
 
 export default function Admin({ enabledModules, onToggleModule }) {

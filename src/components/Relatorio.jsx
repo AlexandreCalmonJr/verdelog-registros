@@ -23,9 +23,9 @@ export default function Relatorio({ logs, tickets, profile }) {
     filteredLogs.forEach(l => {
       csv += `"${l.date}","${l.hora_inicio}","${l.hora_fim}","${l.total_horas}","${l.resumo.replace(/"/g, '""')}"\n`;
     });
-    csv += `\nCHAMADOS\nData,Ref,Setor/Órgão,Descrição,Status\n`;
+    csv += `\nCHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,Ref,Setor/Órgão,Descrição,Status\n`;
     filteredTickets.forEach(t => {
-      csv += `"${t.dateDisplay}","${t.ref}","${t.cliente}","${t.description.replace(/"/g, '""')}","${t.status}"\n`;
+      csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${t.ref}","${t.cliente}","${t.description.replace(/"/g, '""')}","${t.status}"\n`;
     });
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -126,6 +126,43 @@ export default function Relatorio({ logs, tickets, profile }) {
       doc.text(log.resumo.length > 55 ? log.resumo.substring(0, 55) + '…' : log.resumo, 105, y + 4);
       y += 7;
     });
+
+    // Tickets Table
+    if (filteredTickets.length > 0) {
+      y += 15;
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setTextColor(...green);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CHAMADOS', 15, y);
+      y += 5;
+      doc.setFillColor(...green);
+      doc.rect(10, y, 190, 7, 'F');
+      doc.setTextColor(15, 25, 20);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      ['REF', 'INÍCIO', 'FIM', 'STATUS', 'DESCRIÇÃO'].forEach((h, i) => doc.text(h, [14, 35, 65, 95, 120][i], y + 5));
+      y += 8;
+
+      filteredTickets.forEach((t, i) => {
+        if (y > 260) { doc.addPage(); y = 20; }
+        if (i % 2 === 0) { doc.setFillColor(18, 30, 24); doc.rect(10, y - 1, 190, 7, 'F'); }
+        doc.setTextColor(220, 240, 235);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text(t.ref || '—', 14, y + 4);
+        doc.text(`${t.dateDisplay || ''} ${t.hora || ''}`, 35, y + 4);
+        doc.text(t.data_fim ? `${t.data_fim} ${t.hora_fim || ''}` : '—', 65, y + 4);
+        
+        const statusLabel = t.status === 'resolved' ? 'Resolvido' : t.status === 'open' ? 'Aberto' : t.status === 'pending' ? 'Pendente' : 'Escalado';
+        doc.setTextColor(...(t.status === 'resolved' ? green : [255, 179, 71]));
+        doc.text(statusLabel, 95, y + 4);
+        
+        doc.setTextColor(180, 210, 200);
+        doc.text(t.description.length > 45 ? t.description.substring(0, 45) + '…' : t.description, 120, y + 4);
+        y += 7;
+      });
+    }
 
     // Footer
     doc.setFillColor(20, 35, 28);

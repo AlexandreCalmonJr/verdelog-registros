@@ -192,30 +192,21 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
       </div>
 
       {/* Bottom Nav - Mobile Only */}
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[rgba(17,25,22,0.95)] backdrop-blur-3xl border-t border-border grid pb-[env(safe-area-inset-bottom)] ${
-        navItems.length > 5 ? 'grid-cols-5' : `grid-cols-${navItems.length}`
-      }`}>
-        {navItems.slice(0, 5).map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`flex flex-col items-center p-2.5 gap-1 text-[0.55rem] font-sans transition-colors ${activeTab === item.id ? 'text-green' : 'text-text-muted'}`}
-          >
-            <div className={activeTab === item.id ? 'drop-shadow-[0_0_6px_rgba(0,200,150,0.5)]' : ''}>
-              {item.icon}
-            </div>
-            {item.label}
-          </button>
-        ))}
-        {navItems.length > 5 && (
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="flex flex-col items-center p-2.5 gap-1 text-[0.55rem] font-sans text-text-muted"
-          >
-            <Menu size={18} />
-            Mais
-          </button>
-        )}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[rgba(17,25,22,0.95)] backdrop-blur-3xl border-t border-border pb-[env(safe-area-inset-bottom)]">
+        <div className="flex overflow-x-auto hide-scrollbar">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex-shrink-0 flex flex-col items-center justify-center p-2.5 min-w-[72px] gap-1 text-[0.6rem] font-sans transition-colors ${activeTab === item.id ? 'text-green' : 'text-text-muted'}`}
+            >
+              <div className={activeTab === item.id ? 'drop-shadow-[0_0_6px_rgba(0,200,150,0.5)]' : ''}>
+                {item.icon}
+              </div>
+              <span className="truncate w-full text-center">{item.label}</span>
+            </button>
+          ))}
+        </div>
       </nav>
     </div>
   );
