@@ -13,6 +13,8 @@ const Historico = lazy(() => import('./components/Historico'));
 const Relatorio = lazy(() => import('./components/Relatorio'));
 const Inventory = lazy(() => import('./components/Inventory'));
 const Logistics = lazy(() => import('./components/Logistics'));
+const Admin = lazy(() => import('./components/Admin'));
+const Tutorial = lazy(() => import('./components/Tutorial'));
 
 // Lazy load modals
 const StopShiftModal = lazy(() => import('./components/Modals').then(m => ({ default: m.StopShiftModal })));
@@ -40,6 +42,33 @@ export default function App() {
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Module Visibility State
+  const [enabledModules, setEnabledModules] = useState(() => {
+    const saved = localStorage.getItem('verdeit_modules');
+    return saved ? JSON.parse(saved) : {
+      home: true,
+      ponto: true,
+      inventario: true,
+      logistica: true,
+      chamados: true,
+      historico: true,
+      relatorio: true,
+      admin: true,
+      tutorial: true
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('verdeit_modules', JSON.stringify(enabledModules));
+  }, [enabledModules]);
+
+  const toggleModule = (moduleId) => {
+    setEnabledModules(prev => ({
+      ...prev,
+      [moduleId]: !prev[moduleId]
+    }));
+  };
 
   // Modal States
   const [modals, setModals] = useState({
@@ -274,6 +303,7 @@ export default function App() {
       profile={profile} 
       activeTab={activeTab} 
       setActiveTab={setActiveTab}
+      enabledModules={enabledModules}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
     >
       <Suspense fallback={<LoadingSpinner />}>
@@ -335,6 +365,17 @@ export default function App() {
             tickets={tickets}
             profile={profile}
           />
+        )}
+
+        {activeTab === 'admin' && (
+          <Admin 
+            enabledModules={enabledModules}
+            onToggleModule={toggleModule}
+          />
+        )}
+
+        {activeTab === 'tutorial' && (
+          <Tutorial />
         )}
 
         {/* Modals */}

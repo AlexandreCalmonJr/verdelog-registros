@@ -13,23 +13,31 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Settings,
+  BookOpen,
+  History
 } from 'lucide-react';
 
-export default function Layout({ user, profile, activeTab, setActiveTab, onOpenProfile, children }) {
+export default function Layout({ user, profile, activeTab, setActiveTab, enabledModules, onOpenProfile, children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const navDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
 
-  const navItems = [
+  const allNavItems = [
     { id: 'home', icon: <Home size={18} />, label: 'Início' },
     { id: 'ponto', icon: <Clock size={18} />, label: 'Ponto' },
     { id: 'inventario', icon: <Monitor size={18} />, label: 'Inventário' },
     { id: 'logistica', icon: <Package size={18} />, label: 'Logística' },
     { id: 'chamados', icon: <ClipboardList size={18} />, label: 'Chamados' },
+    { id: 'historico', icon: <History size={18} />, label: 'Histórico' },
     { id: 'relatorio', icon: <FileText size={18} />, label: 'Relatório' },
+    { id: 'admin', icon: <Settings size={18} />, label: 'Administrativo' },
+    { id: 'tutorial', icon: <BookOpen size={18} />, label: 'Tutorial' },
   ];
+
+  const navItems = allNavItems.filter(item => enabledModules[item.id] !== false);
 
   const NavContent = ({ mobile = false }) => (
     <>
@@ -183,9 +191,11 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
         </main>
       </div>
 
-      {/* Bottom Nav - Mobile Only (Optional, kept for quick access if preferred) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[rgba(17,25,22,0.95)] backdrop-blur-3xl border-t border-border grid grid-cols-6 pb-[env(safe-area-inset-bottom)]">
-        {navItems.map((item) => (
+      {/* Bottom Nav - Mobile Only */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[rgba(17,25,22,0.95)] backdrop-blur-3xl border-t border-border grid pb-[env(safe-area-inset-bottom)] ${
+        navItems.length > 5 ? 'grid-cols-5' : `grid-cols-${navItems.length}`
+      }`}>
+        {navItems.slice(0, 5).map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
@@ -197,6 +207,15 @@ export default function Layout({ user, profile, activeTab, setActiveTab, onOpenP
             {item.label}
           </button>
         ))}
+        {navItems.length > 5 && (
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex flex-col items-center p-2.5 gap-1 text-[0.55rem] font-sans text-text-muted"
+          >
+            <Menu size={18} />
+            Mais
+          </button>
+        )}
       </nav>
     </div>
   );
