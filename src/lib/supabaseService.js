@@ -48,7 +48,7 @@ export const supabaseService = {
     checkClient();
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, name') // ONLY select non-sensitive data
       .order('name', { ascending: true });
     if (error) throw error;
     return data;

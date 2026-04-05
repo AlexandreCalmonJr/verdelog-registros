@@ -8,7 +8,6 @@ import 'jspdf-autotable';
 export default function Inventory({ user, onNewTicket, showToast }) {
   const [sectors, setSectors] = useState([]);
   const [equipment, setEquipment] = useState([]);
-  const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('sectors'); // sectors, equipment
@@ -19,6 +18,7 @@ export default function Inventory({ user, onNewTicket, showToast }) {
   const [equipmentTickets, setEquipmentTickets] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [selectedSector, setSelectedSector] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -28,14 +28,12 @@ export default function Inventory({ user, onNewTicket, showToast }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [s, e, p] = await Promise.all([
+      const [s, e] = await Promise.all([
         supabaseService.getSectors(),
-        supabaseService.getEquipment(),
-        supabaseService.getAllProfiles()
+        supabaseService.getEquipment()
       ]);
       setSectors(s || []);
       setEquipment(e || []);
-      setProfiles(p || []);
     } catch (error) {
       console.error('Erro ao carregar inventário:', error);
     } finally {
@@ -213,12 +211,15 @@ export default function Inventory({ user, onNewTicket, showToast }) {
 
   const filteredEquip = equipment.filter(e => {
     const matchesSector = selectedSector === 'all' || e.sector_id === selectedSector;
+    const matchesStatus = selectedStatus === 'all' || e.status === selectedStatus;
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = searchTerm === '' || 
-      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.brand && e.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (e.model && e.model.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesSector && matchesSearch;
+      (e.name && e.name.toLowerCase().includes(searchLower)) ||
+      (e.type && e.type.toLowerCase().includes(searchLower)) ||
+      (e.serial_number && e.serial_number.toLowerCase().includes(searchLower)) ||
+      (e.brand && e.brand.toLowerCase().includes(searchLower)) ||
+      (e.model && e.model.toLowerCase().includes(searchLower));
+    return matchesSector && matchesStatus && matchesSearch;
   });
 
   const stats = {
@@ -345,6 +346,16 @@ export default function Inventory({ user, onNewTicket, showToast }) {
                 {sectors.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.floor === 0 ? 'Térreo' : `${s.floor}º`})</option>
                 ))}
+              </select>
+              <select 
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-green w-full md:w-40"
+              >
+                <option value="all">Todos os Status</option>
+                <option value="active">Ativo</option>
+                <option value="maintenance">Manutenção</option>
+                <option value="retired">Retirado</option>
               </select>
             </div>
             <button 

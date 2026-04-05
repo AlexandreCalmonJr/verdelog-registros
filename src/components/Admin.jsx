@@ -11,7 +11,8 @@ import {
   FileText,
   History,
   Info,
-  BookOpen
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function Admin({ enabledModules, onToggleModule }) {
@@ -83,6 +84,19 @@ export default function Admin({ enabledModules, onToggleModule }) {
           <strong>Nota:</strong> Desativar um módulo apenas o remove do menu de navegação. 
           Os dados salvos no banco de dados não serão afetados e você poderá reativá-los a qualquer momento.
         </p>
+      </div>
+
+      <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex gap-3 items-start mt-4">
+        <ShieldAlert className="text-red-500 shrink-0" size={18} />
+        <div className="text-[0.75rem] text-red-500/90 leading-relaxed">
+          <strong className="block mb-1 text-red-500">Segurança de Dados (RLS)</strong>
+          <p>Para evitar roubo de dados sensíveis (como CPF e e-mails), é fundamental ativar o <strong>Row Level Security (RLS)</strong> no painel do Supabase. O RLS garante que cada usuário só possa ler e editar os dados que lhe pertencem.</p>
+          <ul className="list-disc pl-4 mt-2 space-y-1 opacity-80">
+            <li>Acesse o painel do Supabase &gt; Authentication &gt; Policies.</li>
+            <li>Ative o RLS para todas as tabelas (profiles, logs, tickets, etc).</li>
+            <li>Crie políticas permitindo acesso apenas onde <code className="bg-red-500/20 px-1 rounded">auth.uid() = user_id</code>.</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
