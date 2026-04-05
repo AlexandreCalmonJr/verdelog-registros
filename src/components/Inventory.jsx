@@ -4,7 +4,7 @@ import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X,
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-export default function Inventory({ user }) {
+export default function Inventory({ user, onNewTicket }) {
   const [sectors, setSectors] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -14,6 +14,7 @@ export default function Inventory({ user }) {
   const [showEquipModal, setShowEquipModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
+  const [equipmentTickets, setEquipmentTickets] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [selectedSector, setSelectedSector] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,10 +43,14 @@ export default function Inventory({ user }) {
 
   const fetchMaintenance = async (equipId) => {
     try {
-      const logs = await supabaseService.getMaintenanceLogs(equipId);
+      const [logs, tks] = await Promise.all([
+        supabaseService.getMaintenanceLogs(equipId),
+        supabaseService.getTicketsByEquipment(equipId)
+      ]);
       setMaintenanceLogs(logs || []);
+      setEquipmentTickets(tks || []);
     } catch (error) {
-      console.error('Erro ao carregar manutenção:', error);
+      console.error('Erro ao carregar histórico:', error);
     }
   };
 
@@ -99,7 +104,7 @@ export default function Inventory({ user }) {
       model: formData.get('model'),
       serial_number: formData.get('serial_number'),
       sector_id: formData.get('sector_id'),
-      assigned_user_id: formData.get('assigned_user_id') || null,
+      assigned_user_name: formData.get('assigned_user_name') || null,
       status: formData.get('status'),
       cpu: formData.get('cpu'),
       ram: formData.get('ram'),
@@ -114,7 +119,8 @@ export default function Inventory({ user }) {
       setEditingItem(null);
       fetchData();
     } catch (error) {
-      alert('Erro ao salvar equipamento. Verifique se o número de série é único.');
+      console.error('Erro ao salvar equipamento:', error);
+      alert(`Erro ao salvar equipamento: ${error.message || 'Verifique se o número de série é único.'}`);
     }
   };
 
@@ -348,10 +354,10 @@ export default function Inventory({ user }) {
                   <p className="text-[0.7rem] text-text-muted mb-2">{equip.brand} {equip.model} · SN: {equip.serial_number}</p>
                   
                   {/* Assigned User */}
-                  {equip.assigned_user && (
+                  {equip.assigned_user_name && (
                     <div className="flex items-center gap-1.5 text-[0.65rem] text-green bg-green/10 p-1.5 rounded-lg mb-2 inline-flex">
                       <UserIcon size={12} />
-                      Usuário: {equip.assigned_user.name}
+                      Usuário: {equip.assigned_user_name}
                     </div>
                   )}
 
@@ -371,12 +377,20 @@ export default function Inventory({ user }) {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
-                  <button 
-                    onClick={() => { setEditingItem(equip); setShowMaintenanceModal(true); fetchMaintenance(equip.id); }}
-                    className="text-[0.7rem] font-bold text-green flex items-center gap-1 hover:underline"
-                  >
-                    <History size={14} /> Histórico
-                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => { setEditingItem(equip); setShowMaintenanceModal(true); fetchMaintenance(equip.id); }}
+                      className="text-[0.7rem] font-bold text-green flex items-center gap-1 hover:underline"
+                    >
+                      <History size={14} /> Histórico
+                    </button>
+                    <button 
+                      onClick={() => onNewTicket(equip.id)}
+                      className="text-[0.7rem] font-bold text-blue-500 flex items-center gap-1 hover:underline"
+                    >
+                      <Plus size={14} /> Chamado
+                    </button>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => { setEditingItem(equip); setShowEquipModal(true); }} className="p-1.5 text-text-muted hover:text-green"><Edit2 size={14} /></button>
                     <button onClick={() => handleDeleteEquip(equip.id)} className="p-1.5 text-text-muted hover:text-red-500"><Trash2 size={14} /></button>
@@ -402,7 +416,7 @@ export default function Inventory({ user }) {
           >
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-bold">Histórico de Manutenção</h3>
+                <h3 className="text-lg font-bold">Histórico do Equipamento</h3>
                 <p className="text-xs text-text-muted">{editingItem?.name} · {editingItem?.brand} {editingItem?.model}</p>
               </div>
               <button onClick={() => setShowMaintenanceModal(false)} className="p-2 hover:bg-surface2 rounded-full transition-all"><X size={20} /></button>
@@ -428,24 +442,52 @@ export default function Inventory({ user }) {
                 </form>
               </div>
 
-              <div>
-                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Registros Anteriores</h4>
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                  {maintenanceLogs.map(log => (
-                    <div key={log.id} className="bg-surface2 border border-border rounded-xl p-3">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-[0.7rem] font-bold text-green">{new Date(log.date).toLocaleDateString('pt-BR')}</span>
-                        <span className="text-[0.7rem] font-mono text-text-muted">R$ {log.cost.toFixed(2)}</span>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Registros de Manutenção</h4>
+                  <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                    {maintenanceLogs.map(log => (
+                      <div key={log.id} className="bg-surface2 border border-border rounded-xl p-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-[0.7rem] font-bold text-green">{new Date(log.date).toLocaleDateString('pt-BR')}</span>
+                          <span className="text-[0.7rem] font-mono text-text-muted">R$ {log.cost.toFixed(2)}</span>
+                        </div>
+                        <p className="text-[0.8rem] text-text leading-relaxed">{log.description}</p>
+                        <div className="mt-2 text-[0.6rem] text-text-muted flex items-center gap-1">
+                          <UserIcon size={10} /> {log.profiles?.name || 'Técnico'}
+                        </div>
                       </div>
-                      <p className="text-[0.8rem] text-text leading-relaxed">{log.description}</p>
-                      <div className="mt-2 text-[0.6rem] text-text-muted flex items-center gap-1">
-                        <UserIcon size={10} /> {log.profiles?.name || 'Técnico'}
+                    ))}
+                    {maintenanceLogs.length === 0 && (
+                      <div className="text-center py-4 text-text-muted italic text-xs">Nenhum registro de manutenção.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold mb-3 uppercase tracking-wider text-text-dim">Chamados Vinculados</h4>
+                  <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                    {equipmentTickets.map(tk => (
+                      <div key={tk.id} className="bg-surface2 border border-border rounded-xl p-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-[0.7rem] font-bold text-green">#{tk.ref}</span>
+                          <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full border ${
+                            tk.status === 'resolved' ? 'bg-green/10 text-green border-green/20' : 'bg-amber/10 text-amber border-amber/20'
+                          }`}>
+                            {tk.status === 'resolved' ? 'Resolvido' : 'Em Aberto'}
+                          </span>
+                        </div>
+                        <p className="text-[0.8rem] text-text leading-relaxed">{tk.description}</p>
+                        <div className="mt-2 text-[0.6rem] text-text-muted flex justify-between">
+                          <span>{new Date(tk.created_at).toLocaleDateString('pt-BR')}</span>
+                          <span>Técnico: {tk.profiles?.name}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {maintenanceLogs.length === 0 && (
-                    <div className="text-center py-8 text-text-muted italic text-sm">Nenhum registro de manutenção.</div>
-                  )}
+                    ))}
+                    {equipmentTickets.length === 0 && (
+                      <div className="text-center py-4 text-text-muted italic text-xs">Nenhum chamado vinculado.</div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -561,12 +603,12 @@ export default function Inventory({ user }) {
                 </div>
                 <div>
                   <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Usuário Responsável</label>
-                  <select name="assigned_user_id" defaultValue={editingItem?.assigned_user_id || ''} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green">
-                    <option value="">Nenhum (Disponível)</option>
-                    {profiles.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
-                    ))}
-                  </select>
+                  <input 
+                    name="assigned_user_name" 
+                    defaultValue={editingItem?.assigned_user_name} 
+                    className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" 
+                    placeholder="Nome do servidor responsável" 
+                  />
                 </div>
                 <div>
                   <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Status</label>

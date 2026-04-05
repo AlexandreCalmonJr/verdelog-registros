@@ -142,6 +142,17 @@ export const supabaseService = {
     if (error) throw error;
   },
 
+  async getTicketsByEquipment(equipmentId) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*, profiles(name)')
+      .eq('equipment_id', equipmentId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
   // Sectors
   async getSectors() {
     checkClient();
@@ -177,7 +188,7 @@ export const supabaseService = {
   // Equipment
   async getEquipment(sectorId = null) {
     checkClient();
-    let query = supabase.from('equipment').select('*, sectors(name, floor), assigned_user:profiles!assigned_user_id(name)');
+    let query = supabase.from('equipment').select('*, sectors(name, floor)');
     if (sectorId) {
       query = query.eq('sector_id', sectorId);
     }

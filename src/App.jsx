@@ -128,7 +128,10 @@ export default function App() {
       setSectors(sec || []);
 
       // Filter equipment assigned to this user
-      const assigned = (e || []).filter(item => item.assigned_user_id === userId);
+      const assigned = (e || []).filter(item => 
+        item.assigned_user_id === userId || 
+        (item.assigned_user_name && item.assigned_user_name.toLowerCase() === p?.name?.toLowerCase())
+      );
       setAssignedEquipment(assigned);
       
       // Fetch active shifts count for home stats
@@ -297,7 +300,13 @@ export default function App() {
         )}
 
         {activeTab === 'inventario' && (
-          <Inventory user={user} />
+          <Inventory 
+            user={user} 
+            onNewTicket={(equipId) => { 
+              setSelectedTicket({ equipment_id: equipId }); 
+              setModals({ ...modals, ticket: true }); 
+            }} 
+          />
         )}
 
         {activeTab === 'logistica' && (
