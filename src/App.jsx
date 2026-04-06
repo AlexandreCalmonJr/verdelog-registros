@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import Auth from './components/Auth';
@@ -7,22 +7,19 @@ import { validarCPF } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { supabaseService } from './lib/supabaseService';
 
-// Lazy load components
-const Home = lazy(() => import('./components/Home'));
-const Ponto = lazy(() => import('./components/Ponto'));
-const Chamados = lazy(() => import('./components/Chamados'));
-const Historico = lazy(() => import('./components/Historico'));
-const Relatorio = lazy(() => import('./components/Relatorio'));
-const Inventory = lazy(() => import('./components/Inventory'));
-const Logistics = lazy(() => import('./components/Logistics'));
-const Admin = lazy(() => import('./components/Admin'));
-const Tutorial = lazy(() => import('./components/Tutorial'));
+// Standard imports instead of lazy to prevent Vercel chunk 404 errors
+import Home from './components/Home';
+import Ponto from './components/Ponto';
+import Chamados from './components/Chamados';
+import Historico from './components/Historico';
+import Relatorio from './components/Relatorio';
+import Inventory from './components/Inventory';
+import Logistics from './components/Logistics';
+import Admin from './components/Admin';
+import Tutorial from './components/Tutorial';
 
-// Lazy load modals
-const StopShiftModal = lazy(() => import('./components/Modals').then(m => ({ default: m.StopShiftModal })));
-const TicketModal = lazy(() => import('./components/Modals').then(m => ({ default: m.TicketModal })));
-const ProfileModal = lazy(() => import('./components/Modals').then(m => ({ default: m.ProfileModal })));
-const LogDetailModal = lazy(() => import('./components/Modals').then(m => ({ default: m.LogDetailModal })));
+// Modals
+import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-12">
@@ -312,106 +309,104 @@ export default function App() {
       enabledModules={enabledModules}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
     >
-      <Suspense fallback={<LoadingSpinner />}>
-        {activeTab === 'home' && (
-          <Home 
-            user={user} 
-            onNavigate={setActiveTab} 
-            stats={stats} 
-            assignedEquipment={assignedEquipment}
-          />
-        )}
-
-        {activeTab === 'ponto' && (
-          <Ponto 
-            isWorking={isWorking}
-            shiftStartTime={shiftStartTime}
-            logs={logs}
-            tickets={tickets}
-            onStartShift={startShift}
-            onStopShift={() => setModals({ ...modals, stop: true })}
-            onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
-            onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
-          />
-        )}
-
-        {activeTab === 'inventario' && (
-          <Inventory 
-            user={user} 
-            onNewTicket={(equipId) => { 
-              setSelectedTicket({ equipment_id: equipId }); 
-              setModals({ ...modals, ticket: true }); 
-            }} 
-            showToast={showToast}
-          />
-        )}
-
-        {activeTab === 'logistica' && (
-          <Logistics user={user} />
-        )}
-
-        {activeTab === 'chamados' && (
-          <Chamados 
-            tickets={tickets}
-            onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
-            onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
-            onDeleteTicket={deleteTicket}
-          />
-        )}
-
-        {activeTab === 'historico' && (
-          <Historico 
-            logs={logs}
-            onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
-          />
-        )}
-
-        {activeTab === 'relatorio' && (
-          <Relatorio 
-            logs={logs}
-            tickets={tickets}
-            profile={profile}
-          />
-        )}
-
-        {activeTab === 'admin' && (
-          <Admin 
-            enabledModules={enabledModules}
-            onToggleModule={toggleModule}
-          />
-        )}
-
-        {activeTab === 'tutorial' && (
-          <Tutorial />
-        )}
-
-        {/* Modals */}
-        <StopShiftModal 
-          isOpen={modals.stop} 
-          onClose={() => setModals({ ...modals, stop: false })}
-          onConfirm={confirmStopShift}
+      {activeTab === 'home' && (
+        <Home 
+          user={user} 
+          onNavigate={setActiveTab} 
+          stats={stats} 
+          assignedEquipment={assignedEquipment}
         />
-        <TicketModal 
-          isOpen={modals.ticket}
-          onClose={() => setModals({ ...modals, ticket: false })}
-          onSave={saveTicket}
-          ticket={selectedTicket}
-          equipment={equipment}
+      )}
+
+      {activeTab === 'ponto' && (
+        <Ponto 
+          isWorking={isWorking}
+          shiftStartTime={shiftStartTime}
+          logs={logs}
+          tickets={tickets}
+          onStartShift={startShift}
+          onStopShift={() => setModals({ ...modals, stop: true })}
+          onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
+          onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
         />
-        <ProfileModal 
-          isOpen={modals.profile}
-          onClose={() => setModals({ ...modals, profile: false })}
-          onSave={saveProfile}
-          onLogout={handleLogout}
+      )}
+
+      {activeTab === 'inventario' && (
+        <Inventory 
+          user={user} 
+          onNewTicket={(equipId) => { 
+            setSelectedTicket({ equipment_id: equipId }); 
+            setModals({ ...modals, ticket: true }); 
+          }} 
+          showToast={showToast}
+        />
+      )}
+
+      {activeTab === 'logistica' && (
+        <Logistics user={user} />
+      )}
+
+      {activeTab === 'chamados' && (
+        <Chamados 
+          tickets={tickets}
+          onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
+          onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
+          onDeleteTicket={deleteTicket}
+        />
+      )}
+
+      {activeTab === 'historico' && (
+        <Historico 
+          logs={logs}
+          onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
+        />
+      )}
+
+      {activeTab === 'relatorio' && (
+        <Relatorio 
+          logs={logs}
+          tickets={tickets}
           profile={profile}
-          userEmail={user.email}
         />
-        <LogDetailModal 
-          isOpen={modals.logDetail}
-          onClose={() => setModals({ ...modals, logDetail: false })}
-          log={selectedLog}
+      )}
+
+      {activeTab === 'admin' && (
+        <Admin 
+          enabledModules={enabledModules}
+          onToggleModule={toggleModule}
         />
-      </Suspense>
+      )}
+
+      {activeTab === 'tutorial' && (
+        <Tutorial />
+      )}
+
+      {/* Modals */}
+      <StopShiftModal 
+        isOpen={modals.stop} 
+        onClose={() => setModals({ ...modals, stop: false })}
+        onConfirm={confirmStopShift}
+      />
+      <TicketModal 
+        isOpen={modals.ticket}
+        onClose={() => setModals({ ...modals, ticket: false })}
+        onSave={saveTicket}
+        ticket={selectedTicket}
+        equipment={equipment}
+      />
+      <ProfileModal 
+        isOpen={modals.profile}
+        onClose={() => setModals({ ...modals, profile: false })}
+        onSave={saveProfile}
+        onLogout={handleLogout}
+        profile={profile}
+        userEmail={user.email}
+      />
+      <LogDetailModal 
+        isOpen={modals.logDetail}
+        onClose={() => setModals({ ...modals, logDetail: false })}
+        log={selectedLog}
+      />
 
       {/* Toast Notification */}
       <AnimatePresence>
