@@ -68,8 +68,9 @@ export function TicketModal({
   equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: ''
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '', notes: []
   });
+  const [newNote, setNewNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
 
@@ -82,12 +83,29 @@ export function TicketModal({
       priority: ticket.priority || 'medium',
       requester: ticket.requester || '',
       photo_url: ticket.photo_url || '',
-      hora: ticket.hora || ''
+      hora: ticket.hora || '',
+      notes: ticket.notes || []
     });
-    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '' });
+    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '', notes: [] });
     setSaving(false);
     setUploading(false);
+    setNewNote('');
   }, [ticket, isOpen]);
+
+  const handleAddNote = (e) => {
+    if (e) e.preventDefault();
+    if (!newNote.trim()) return;
+    const note = {
+      id: Date.now().toString(),
+      text: newNote.trim(),
+      created_at: new Date().toISOString()
+    };
+    setFormData({
+      ...formData,
+      notes: [...(formData.notes || []), note]
+    });
+    setNewNote('');
+  };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
@@ -276,6 +294,45 @@ export function TicketModal({
             />
           </motion.div>
         )}
+
+        {/* Histórico de Anotações */}
+        <div className="mt-6 pt-6 border-t border-border/50">
+          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-3">Histórico de Anotações</label>
+          
+          <div className="space-y-3 mb-4 max-h-[200px] overflow-y-auto no-scrollbar">
+            {formData.notes && formData.notes.length > 0 ? (
+              formData.notes.map(note => (
+                <div key={note.id} className="bg-surface2 border border-border rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[0.65rem] text-text-muted font-mono">
+                      {new Date(note.created_at).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <p className="text-[0.85rem] text-text-dim">{note.text}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-[0.8rem] text-text-muted italic text-center py-2">Nenhuma anotação registrada.</p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input 
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddNote(e)}
+              className="flex-1 bg-surface2 border border-border rounded-lg p-2.5 text-text font-sans text-[0.85rem] outline-none focus:border-green transition-all"
+              placeholder="Adicionar nova anotação..."
+            />
+            <button 
+              onClick={handleAddNote}
+              disabled={!newNote.trim()}
+              className="bg-surface border border-border text-green font-semibold px-4 rounded-lg hover:bg-green/10 hover:border-green/30 transition-all disabled:opacity-50 disabled:hover:bg-surface disabled:hover:border-border"
+            >
+              Adicionar
+            </button>
+          </div>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <button onClick={onClose} className="bg-surface border border-border text-text-dim font-semibold p-3 rounded-lg hover:bg-surface2 transition-all">Cancelar</button>

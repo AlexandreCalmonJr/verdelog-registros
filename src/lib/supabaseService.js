@@ -319,6 +319,37 @@ export const supabaseService = {
     return data;
   },
 
+  // Wiki
+  async getWikiArticles() {
+    checkClient();
+    const { data, error } = await supabase
+      .from('wiki_articles')
+      .select('*, profiles(name)')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertWikiArticle(article) {
+    checkClient();
+    const { data, error } = await supabase
+      .from('wiki_articles')
+      .upsert({ ...article, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteWikiArticle(articleId) {
+    checkClient();
+    const { error } = await supabase
+      .from('wiki_articles')
+      .delete()
+      .eq('id', articleId);
+    if (error) throw error;
+  },
+
   // Active Shift
   async getActiveShift(userId) {
     checkClient();

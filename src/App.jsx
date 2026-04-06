@@ -17,6 +17,7 @@ import Inventory from './components/Inventory';
 import Logistics from './components/Logistics';
 import Admin from './components/Admin';
 import Tutorial from './components/Tutorial';
+import Wiki from './components/Wiki';
 
 // Modals
 import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
@@ -59,6 +60,7 @@ export default function App() {
       chamados: true,
       historico: true,
       relatorio: true,
+      wiki: true,
       admin: true,
       tutorial: true
     };
@@ -367,6 +369,13 @@ export default function App() {
           logs={logs}
           tickets={tickets}
           profile={profile}
+        />
+      )}
+
+      {activeTab === 'wiki' && (
+        <Wiki 
+          user={user}
+          showToast={showToast}
         />
       )}
 

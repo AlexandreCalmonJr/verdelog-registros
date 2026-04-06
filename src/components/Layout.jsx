@@ -45,6 +45,7 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
     { id: 'chamados', icon: <ClipboardList size={18} />, label: 'Chamados' },
     { id: 'historico', icon: <History size={18} />, label: 'Histórico' },
     { id: 'relatorio', icon: <FileText size={18} />, label: 'Relatório' },
+    { id: 'wiki', icon: <BookOpen size={18} />, label: 'Wiki' },
     { id: 'admin', icon: <Settings size={18} />, label: 'Administrativo' },
     { id: 'tutorial', icon: <BookOpen size={18} />, label: 'Tutorial' },
   ];

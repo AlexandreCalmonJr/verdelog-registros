@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare } from 'lucide-react';
 
 export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
@@ -111,6 +111,12 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
           {t.status === 'resolved' && t.solution && !isKanban && (
             <div className="mt-2 p-2 bg-green/5 border-l-2 border-green rounded-r-lg text-[0.8rem] text-text-dim italic">
               <span className="font-bold text-green not-italic">Solução:</span> {t.solution}
+            </div>
+          )}
+          {t.notes && t.notes.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 text-text-muted">
+              <MessageSquare size={12} />
+              <span className="text-[0.7rem] font-medium">{t.notes.length} anotaç{t.notes.length > 1 ? 'ões' : 'ão'}</span>
             </div>
           )}
         </div>
