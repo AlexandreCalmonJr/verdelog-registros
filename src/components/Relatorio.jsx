@@ -100,32 +100,8 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.setTextColor(...gray);
     doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 18, 73);
 
-    // Stats
-    const stats = [];
-    if (includeLogs) {
-      stats.push({ label: 'DIAS', value: filteredLogs.length });
-      stats.push({ label: 'HORAS', value: formatHours(totalH) });
-    }
-    if (includeTickets) {
-      stats.push({ label: 'CHAMADOS', value: filteredTickets.length });
-    }
-    
-    stats.forEach((b, i) => {
-      const x = 10 + i * 65;
-      doc.setFillColor(20, 35, 28);
-      doc.roundedRect(x, 86, 62, 22, 3, 3, 'F');
-      doc.setTextColor(...green);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text(String(b.value), x + 10, 101);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...gray);
-      doc.text(b.label, x + 10, 94);
-    });
-
     // Table
-    let y = 118;
+    let y = 86;
     if (includeLogs && filteredLogs.length > 0) {
       doc.setTextColor(...green);
       doc.setFontSize(9);
@@ -171,7 +147,7 @@ export default function Relatorio({ logs, tickets, profile }) {
       doc.setTextColor(15, 25, 20);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
-      ['REF', 'INÍCIO', 'FIM', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO / SOLUÇÃO'].forEach((h, i) => doc.text(h, [14, 35, 65, 95, 120, 145][i], y + 5));
+      ['INÍCIO', 'REF', 'FIM', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO / SOLUÇÃO'].forEach((h, i) => doc.text(h, [14, 45, 65, 95, 120, 145][i], y + 5));
       y += 8;
 
       filteredTickets.forEach((t, i) => {
@@ -180,8 +156,8 @@ export default function Relatorio({ logs, tickets, profile }) {
         doc.setTextColor(220, 240, 235);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
-        doc.text(t.ref || '—', 14, y + 4);
-        doc.text(`${t.dateDisplay || ''} ${t.hora || ''}`, 35, y + 4);
+        doc.text(`${t.dateDisplay || ''} ${t.hora || ''}`, 14, y + 4);
+        doc.text(t.ref || '—', 45, y + 4);
         doc.text(t.data_fim ? `${t.data_fim} ${t.hora_fim || ''}` : '—', 65, y + 4);
         
         const statusLabel = t.status === 'resolved' ? 'Resolvido' : t.status === 'open' ? 'Aberto' : t.status === 'pending' ? 'Pendente' : 'Escalado';
@@ -314,27 +290,6 @@ export default function Relatorio({ logs, tickets, profile }) {
               <strong className="text-text">{profile.name || '—'}</strong> · CPF {profile.cpf ? maskCPF(profile.cpf) : '—'}
               <br />
               <span className="text-text-muted">{profile.cargo || '—'}</span>
-            </div>
-            <div className="h-px bg-border my-4" />
-            <div className="grid grid-cols-3 text-center gap-2 my-4">
-              {includeLogs && (
-                <>
-                  <div>
-                    <div className="font-mono text-lg font-medium text-green">{filteredLogs.length}</div>
-                    <div className="text-[0.65rem] text-text-muted uppercase">Dias</div>
-                  </div>
-                  <div>
-                    <div className="font-mono text-lg font-medium text-green">{formatHours(totalH)}</div>
-                    <div className="text-[0.65rem] text-text-muted uppercase">Total</div>
-                  </div>
-                </>
-              )}
-              {includeTickets && (
-                <div>
-                  <div className="font-mono text-lg font-medium text-green">{filteredTickets.length}</div>
-                  <div className="text-[0.65rem] text-text-muted uppercase">Chamados</div>
-                </div>
-              )}
             </div>
             <div className="h-px bg-border my-4" />
             <p className="text-text-muted text-[0.75rem]">
