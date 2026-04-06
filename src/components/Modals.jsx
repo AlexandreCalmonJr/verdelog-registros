@@ -143,6 +143,27 @@ export function TicketModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
+            <input 
+              value={formData.cliente}
+              onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+              placeholder="Ex: RH, Secretaria..."
+            />
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Solicitante</label>
+            <input 
+              value={formData.requester}
+              onChange={(e) => setFormData({ ...formData, requester: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+              placeholder="Nome do servidor"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
             <select 
               value={formData.status}
@@ -189,13 +210,17 @@ export function TicketModal({
             </select>
           </div>
           <div>
-            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Solicitante</label>
-            <input 
-              value={formData.requester}
-              onChange={(e) => setFormData({ ...formData, requester: e.target.value })}
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
+            <select 
+              value={formData.equipment_id}
+              onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
               className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-              placeholder="Nome do servidor"
-            />
+            >
+              <option value="">Nenhum vinculado</option>
+              {equipment.map(eq => (
+                <option key={eq.id} value={eq.id}>{eq.name} ({eq.patrimony})</option>
+              ))}
+            </select>
           </div>
         </div>
 
