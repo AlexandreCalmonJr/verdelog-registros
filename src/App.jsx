@@ -90,20 +90,7 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
-    console.log('App initialized. Supabase client:', supabase);
-    if (supabase) {
-      console.log('Supabase keys:', Object.keys(supabase));
-      console.log('Supabase auth property:', supabase.auth);
-      console.log('Supabase auth type:', typeof supabase.auth);
-      if (supabase.auth) {
-        const authKeys = Object.keys(supabase.auth);
-        console.log('Supabase auth keys:', authKeys);
-        console.log('onAuthStateChanged in authKeys:', authKeys.includes('onAuthStateChanged'));
-        console.log('type of onAuthStateChanged:', typeof supabase.auth.onAuthStateChanged);
-      }
-    }
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {
-      console.error('Supabase auth or onAuthStateChanged is missing! Client:', supabase);
       setLoading(false);
       return;
     }
@@ -250,6 +237,7 @@ export default function App() {
         user_id: user.id,
         is_active: data.id ? (data.is_active ?? true) : true, // New tickets are active by default
         ponto_id: data.ponto_id || null,
+        equipment_id: data.equipment_id || null, // Fix UUID error: convert "" to null
         date: data.date || now.toISOString().split('T')[0],
         date_display: data.date_display || now.toLocaleDateString('pt-BR'),
         hora: data.hora || now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),

@@ -112,7 +112,7 @@ export default function Inventory({ user, onNewTicket, showToast }) {
       brand: formData.get('brand'),
       model: formData.get('model'),
       serial_number: formData.get('serial_number'),
-      sector_id: formData.get('sector_id'),
+      sector_id: formData.get('sector_id') || null,
       assigned_user_name: formData.get('assigned_user_name') || null,
       status: formData.get('status'),
       cpu: formData.get('cpu'),
