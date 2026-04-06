@@ -7,6 +7,7 @@ export default function Relatorio({ logs, tickets, profile }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
   const [includeLogs, setIncludeLogs] = useState(true);
   const [includeTickets, setIncludeTickets] = useState(true);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState('all'); // 'all', 'resolved', 'open'
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
@@ -15,7 +16,12 @@ export default function Relatorio({ logs, tickets, profile }) {
   });
 
   const filteredLogs = logs.filter(l => l.date_iso?.startsWith(selectedMonth));
-  const filteredTickets = tickets.filter(t => t.date?.startsWith(selectedMonth));
+  const filteredTickets = tickets.filter(t => {
+    if (!t.date?.startsWith(selectedMonth)) return false;
+    if (ticketStatusFilter === 'resolved' && t.status !== 'resolved') return false;
+    if (ticketStatusFilter === 'open' && t.status === 'resolved') return false;
+    return true;
+  });
   const totalH = filteredLogs.reduce((s, l) => s + l.total_horas, 0);
 
   const exportCSV = () => {
@@ -54,7 +60,7 @@ export default function Relatorio({ logs, tickets, profile }) {
   };
 
   const exportPDF = () => {
-    if (!filteredLogs.length) return;
+    if ((!includeLogs || !filteredLogs.length) && (!includeTickets || !filteredTickets.length)) return;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const green = [0, 200, 150];
     const dark = [15, 25, 20];
@@ -95,11 +101,15 @@ export default function Relatorio({ logs, tickets, profile }) {
     doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 18, 73);
 
     // Stats
-    const stats = [
-      { label: 'DIAS', value: filteredLogs.length },
-      { label: 'HORAS', value: formatHours(totalH) },
-      { label: 'CHAMADOS', value: filteredTickets.length }
-    ];
+    const stats = [];
+    if (includeLogs) {
+      stats.push({ label: 'DIAS', value: filteredLogs.length });
+      stats.push({ label: 'HORAS', value: formatHours(totalH) });
+    }
+    if (includeTickets) {
+      stats.push({ label: 'CHAMADOS', value: filteredTickets.length });
+    }
+    
     stats.forEach((b, i) => {
       const x = 10 + i * 65;
       doc.setFillColor(20, 35, 28);
@@ -116,7 +126,7 @@ export default function Relatorio({ logs, tickets, profile }) {
 
     // Table
     let y = 118;
-    if (includeLogs) {
+    if (includeLogs && filteredLogs.length > 0) {
       doc.setTextColor(...green);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
@@ -249,15 +259,34 @@ export default function Relatorio({ logs, tickets, profile }) {
               />
               <span className="text-[0.85rem] font-medium text-text">Registros de Ponto</span>
             </label>
-            <label className="flex items-center gap-3 p-3 bg-surface2 border border-border rounded-xl cursor-pointer hover:border-green/30 transition-all">
-              <input 
-                type="checkbox" 
-                checked={includeTickets} 
-                onChange={(e) => setIncludeTickets(e.target.checked)}
-                className="w-4 h-4 accent-green"
-              />
-              <span className="text-[0.85rem] font-medium text-text">Chamados de TI</span>
-            </label>
+            <div className="flex flex-col gap-2 p-3 bg-surface2 border border-border rounded-xl transition-all">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={includeTickets} 
+                  onChange={(e) => setIncludeTickets(e.target.checked)}
+                  className="w-4 h-4 accent-green"
+                />
+                <span className="text-[0.85rem] font-medium text-text">Chamados de TI</span>
+              </label>
+              
+              {includeTickets && (
+                <div className="pl-7 pt-2 flex gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'all'} onChange={() => setTicketStatusFilter('all')} className="accent-green" />
+                    <span className="text-[0.75rem] text-text-muted">Todos</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'resolved'} onChange={() => setTicketStatusFilter('resolved')} className="accent-green" />
+                    <span className="text-[0.75rem] text-text-muted">Apenas Resolvidos</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'open'} onChange={() => setTicketStatusFilter('open')} className="accent-green" />
+                    <span className="text-[0.75rem] text-text-muted">Apenas Abertos</span>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -279,7 +308,7 @@ export default function Relatorio({ logs, tickets, profile }) {
 
       <div className="bg-surface border border-border rounded-2xl p-5">
         <h3 className="text-[0.9rem] font-semibold text-text-dim mb-4">Pré-visualização</h3>
-        {filteredLogs.length > 0 ? (
+        {(includeLogs && filteredLogs.length > 0) || (includeTickets && filteredTickets.length > 0) ? (
           <div className="text-[0.82rem] text-text-dim leading-relaxed">
             <div className="mb-3">
               <strong className="text-text">{profile.name || '—'}</strong> · CPF {profile.cpf ? maskCPF(profile.cpf) : '—'}
@@ -288,18 +317,24 @@ export default function Relatorio({ logs, tickets, profile }) {
             </div>
             <div className="h-px bg-border my-4" />
             <div className="grid grid-cols-3 text-center gap-2 my-4">
-              <div>
-                <div className="font-mono text-lg font-medium text-green">{filteredLogs.length}</div>
-                <div className="text-[0.65rem] text-text-muted uppercase">Dias</div>
-              </div>
-              <div>
-                <div className="font-mono text-lg font-medium text-green">{formatHours(totalH)}</div>
-                <div className="text-[0.65rem] text-text-muted uppercase">Total</div>
-              </div>
-              <div>
-                <div className="font-mono text-lg font-medium text-green">{filteredTickets.length}</div>
-                <div className="text-[0.65rem] text-text-muted uppercase">Chamados</div>
-              </div>
+              {includeLogs && (
+                <>
+                  <div>
+                    <div className="font-mono text-lg font-medium text-green">{filteredLogs.length}</div>
+                    <div className="text-[0.65rem] text-text-muted uppercase">Dias</div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-lg font-medium text-green">{formatHours(totalH)}</div>
+                    <div className="text-[0.65rem] text-text-muted uppercase">Total</div>
+                  </div>
+                </>
+              )}
+              {includeTickets && (
+                <div>
+                  <div className="font-mono text-lg font-medium text-green">{filteredTickets.length}</div>
+                  <div className="text-[0.65rem] text-text-muted uppercase">Chamados</div>
+                </div>
+              )}
             </div>
             <div className="h-px bg-border my-4" />
             <p className="text-text-muted text-[0.75rem]">
@@ -309,7 +344,7 @@ export default function Relatorio({ logs, tickets, profile }) {
         ) : (
           <div className="text-center py-8 text-text-muted flex flex-col items-center gap-3 opacity-50">
             <FileText size={32} />
-            <p className="text-[0.82rem]">Sem registros para {formatMonthLabel(selectedMonth)}.</p>
+            <p className="text-[0.82rem]">Sem registros selecionados para {formatMonthLabel(selectedMonth)}.</p>
           </div>
         )}
       </div>
