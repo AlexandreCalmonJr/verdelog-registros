@@ -235,7 +235,7 @@ export default function App() {
       const ticketData = {
         ...data,
         user_id: user.id,
-        is_active: data.id ? (data.is_active ?? true) : true, // New tickets are active by default
+        is_active: data.status === 'resolved' ? false : (data.id ? (data.is_active ?? true) : true),
         ponto_id: data.ponto_id || null,
         equipment_id: data.equipment_id || null, // Fix UUID error: convert "" to null
         date: data.date || now.toISOString().split('T')[0],

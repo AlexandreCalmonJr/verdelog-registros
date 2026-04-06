@@ -1,6 +1,8 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { maskCPF, formatHours } from '../lib/utils';
-import { X } from 'lucide-react';
+import { X, Camera, Loader2 } from 'lucide-react';
+import { supabaseService } from '../lib/supabaseService';
 
 const Modal = ({ isOpen, onClose, title, children }) => (
   <>
@@ -66,17 +68,46 @@ export function TicketModal({
   equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open', equipment_id: ''
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: ''
   });
   const [saving, setSaving] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
 
   React.useEffect(() => {
-    if (ticket) setFormData({ ...ticket, equipment_id: ticket.equipment_id || '' });
-    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '' });
+    if (ticket) setFormData({ 
+      ...ticket, 
+      equipment_id: ticket.equipment_id || '',
+      solution: ticket.solution || '',
+      category: ticket.category || 'desktop',
+      priority: ticket.priority || 'medium',
+      requester: ticket.requester || '',
+      photo_url: ticket.photo_url || ''
+    });
+    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '' });
     setSaving(false);
+    setUploading(false);
   }, [ticket, isOpen]);
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const url = await supabaseService.uploadTicketPhoto(file);
+      setFormData({ ...formData, photo_url: url });
+    } catch (error) {
+      alert('Erro ao subir foto: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
+    if (formData.status === 'resolved' && !formData.solution.trim()) {
+      alert('Por favor, descreva a solução para finalizar o chamado.');
+      return;
+    }
     setSaving(true);
     try {
       await onSave(formData);
@@ -112,6 +143,39 @@ export function TicketModal({
             </select>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Categoria</label>
+            <select 
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="desktop">Desktop / Workstation</option>
+              <option value="notebook">Notebook / Laptop</option>
+              <option value="mobile">Mobile (Tablet/Celular)</option>
+              <option value="peripherals">Periféricos (Mouse/Teclado)</option>
+              <option value="printer">Impressora / Scanner</option>
+              <option value="network">Rede / Conectividade</option>
+              <option value="software">Software / Sistema</option>
+              <option value="other">Outros</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Prioridade</label>
+            <select 
+              value={formData.priority || 'medium'}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+              <option value="critical">Crítica</option>
+            </select>
+          </div>
+        </div>
         
         <div>
           <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
@@ -127,15 +191,53 @@ export function TicketModal({
           </select>
         </div>
 
-        <div>
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
-          <input 
-            value={formData.cliente}
-            onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-            placeholder="Secretaria X"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
+            <input 
+              value={formData.cliente}
+              onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+              placeholder="Secretaria X"
+            />
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Solicitante</label>
+            <input 
+              value={formData.requester}
+              onChange={(e) => setFormData({ ...formData, requester: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+              placeholder="Nome do servidor"
+            />
+          </div>
         </div>
+
+        <div>
+          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Foto do Equipamento / Problema</label>
+          <div className="flex items-center gap-4">
+            <label className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${formData.photo_url ? 'border-green/50 bg-green/5 text-green' : 'border-border hover:border-green/50 hover:bg-surface2 text-text-muted'}`}>
+              {uploading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <Camera size={20} />
+              )}
+              <span className="text-[0.85rem] font-medium">{formData.photo_url ? 'Trocar Foto' : 'Subir Foto'}</span>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+            </label>
+            {formData.photo_url && (
+              <div className="relative group">
+                <img src={formData.photo_url} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-border" referrerPolicy="no-referrer" />
+                <button 
+                  onClick={() => setFormData({ ...formData, photo_url: '' })}
+                  className="absolute -top-2 -right-2 bg-red text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div>
           <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Descrição</label>
           <textarea 
@@ -145,6 +247,23 @@ export function TicketModal({
             placeholder="Descreva o problema ou solicitação..."
           />
         </div>
+
+        {formData.status === 'resolved' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green/5 border border-green/20 rounded-xl p-4"
+          >
+            <label className="block text-[0.75rem] font-bold text-green uppercase tracking-[0.06em] mb-1.5">Solução Aplicada *</label>
+            <textarea 
+              value={formData.solution}
+              onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all h-24 resize-none"
+              placeholder="O que foi feito para resolver este chamado?"
+              required
+            />
+          </motion.div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <button onClick={onClose} className="bg-surface border border-border text-text-dim font-semibold p-3 rounded-lg hover:bg-surface2 transition-all">Cancelar</button>

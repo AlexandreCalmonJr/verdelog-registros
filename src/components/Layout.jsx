@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Clock, 
   ClipboardList, 
@@ -22,8 +23,19 @@ import {
 export default function Layout({ user, profile, activeTab, setActiveTab, enabledModules, onOpenProfile, children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const bottomNavRef = useRef(null);
   
   const navDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+
+  // Scroll active item into view on bottom nav
+  useEffect(() => {
+    if (activeTab && bottomNavRef.current) {
+      const activeElement = bottomNavRef.current.querySelector(`[data-id="${activeTab}"]`);
+      if (activeElement) {
+        activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeTab]);
 
   const allNavItems = [
     { id: 'home', icon: <Home size={18} />, label: 'Início' },
@@ -129,19 +141,28 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
       </aside>
 
       {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <>
-          <div 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/80 z-[150] md:hidden"
-          />
-          <aside
-            className="fixed top-0 left-0 bottom-0 w-[280px] bg-surface z-[200] md:hidden flex flex-col border-r border-border shadow-2xl"
-          >
-            <NavContent mobile />
-          </aside>
-        </>
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/80 z-[150] md:hidden backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-[280px] bg-surface z-[200] md:hidden flex flex-col border-r border-border shadow-2xl"
+            >
+              <NavContent mobile />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Header - Mobile/Tablet Portrait Only */}
       <nav className="md:hidden sticky top-0 z-[100] bg-bg border-b border-border p-3 px-4 flex items-center justify-between">
@@ -193,19 +214,40 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
 
       {/* Bottom Nav - Mobile Only */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[rgba(17,25,22,0.95)] backdrop-blur-3xl border-t border-border pb-[env(safe-area-inset-bottom)]">
-        <div className="flex overflow-x-auto hide-scrollbar">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex-shrink-0 flex flex-col items-center justify-center p-2.5 min-w-[72px] gap-1 text-[0.6rem] font-sans transition-colors ${activeTab === item.id ? 'text-green' : 'text-text-muted'}`}
-            >
-              <div className={activeTab === item.id ? 'drop-shadow-[0_0_6px_rgba(0,200,150,0.5)]' : ''}>
-                {item.icon}
-              </div>
-              <span className="truncate w-full text-center">{item.label}</span>
-            </button>
-          ))}
+        <div className="relative">
+          {/* Left Fade */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[rgba(17,25,22,0.95)] to-transparent z-10 pointer-events-none" />
+          
+          <div 
+            ref={bottomNavRef}
+            className="flex overflow-x-auto hide-scrollbar scroll-smooth px-4"
+          >
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                data-id={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex-shrink-0 flex flex-col items-center justify-center p-2.5 min-w-[72px] gap-1 text-[0.6rem] font-sans transition-all relative active:scale-95 ${activeTab === item.id ? 'text-green' : 'text-text-muted'}`}
+              >
+                {activeTab === item.id && (
+                  <motion.div 
+                    layoutId="bottomNavIndicator"
+                    className="absolute inset-x-2 top-1 bottom-1 bg-green/10 rounded-xl -z-10"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <div className={`transition-all duration-300 ${activeTab === item.id ? 'drop-shadow-[0_0_8px_rgba(0,200,150,0.6)] scale-110' : 'scale-100'}`}>
+                  {item.icon}
+                </div>
+                <span className={`truncate w-full text-center transition-all ${activeTab === item.id ? 'font-bold' : 'font-normal opacity-80'}`}>
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Right Fade */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[rgba(17,25,22,0.95)] to-transparent z-10 pointer-events-none" />
         </div>
       </nav>
     </div>

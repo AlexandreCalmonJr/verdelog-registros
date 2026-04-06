@@ -114,13 +114,39 @@ export const supabaseService = {
 
   async upsertTicket(ticket) {
     checkClient();
+    const dataToSave = { ...ticket };
+    
+    // Se estiver resolvendo agora, salva o timestamp real para o SLA
+    if (ticket.status === 'resolved' && !ticket.resolved_at) {
+      dataToSave.resolved_at = new Date().toISOString();
+    }
+
     const { data, error } = await supabase
       .from('tickets')
-      .upsert(ticket)
+      .upsert(dataToSave)
       .select()
       .single();
     if (error) throw error;
     return data;
+  },
+
+  async uploadTicketPhoto(file) {
+    checkClient();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `tickets/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('ticket-photos')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('ticket-photos')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   },
 
   async linkTicketsToLog(userId, logId) {
