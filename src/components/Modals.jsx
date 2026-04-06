@@ -68,7 +68,7 @@ export function TicketModal({
   equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: ''
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: ''
   });
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -81,9 +81,10 @@ export function TicketModal({
       category: ticket.category || 'desktop',
       priority: ticket.priority || 'medium',
       requester: ticket.requester || '',
-      photo_url: ticket.photo_url || ''
+      photo_url: ticket.photo_url || '',
+      hora: ticket.hora || ''
     });
-    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '' });
+    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '' });
     setSaving(false);
     setUploading(false);
   }, [ticket, isOpen]);
@@ -130,6 +131,18 @@ export function TicketModal({
             />
           </div>
           <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Hora Início</label>
+            <input 
+              type="time"
+              value={formData.hora}
+              onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
             <select 
               value={formData.status}
@@ -142,9 +155,6 @@ export function TicketModal({
               <option value="escalated">Escalado</option>
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Categoria</label>
             <select 
@@ -162,6 +172,9 @@ export function TicketModal({
               <option value="other">Outros</option>
             </select>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Prioridade</label>
             <select 
@@ -174,32 +187,6 @@ export function TicketModal({
               <option value="high">Alta</option>
               <option value="critical">Crítica</option>
             </select>
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
-          <select 
-            value={formData.equipment_id}
-            onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-          >
-            <option value="">Nenhum equipamento vinculado</option>
-            {equipment.map(e => (
-              <option key={e.id} value={e.id}>{e.name} ({e.brand} {e.model})</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
-            <input 
-              value={formData.cliente}
-              onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-              placeholder="Secretaria X"
-            />
           </div>
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Solicitante</label>

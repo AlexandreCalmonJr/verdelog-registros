@@ -5,6 +5,8 @@ import { jsPDF } from 'jspdf';
 
 export default function Relatorio({ logs, tickets, profile }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
+  const [includeLogs, setIncludeLogs] = useState(true);
+  const [includeTickets, setIncludeTickets] = useState(true);
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
@@ -17,23 +19,32 @@ export default function Relatorio({ logs, tickets, profile }) {
   const totalH = filteredLogs.reduce((s, l) => s + l.total_horas, 0);
 
   const exportCSV = () => {
-    if (!filteredLogs.length) return;
+    if (!includeLogs && !includeTickets) return;
     const cpfFmt = profile.cpf ? maskCPF(profile.cpf) : '';
-    let csv = `Relatório de Atividade - ${formatMonthLabel(selectedMonth)}\nNome: ${profile.name} | CPF: ${cpfFmt} | Cargo: ${profile.cargo}\n\nREGISTROS DE PONTO\nData,Início,Fim,Total Horas,Resumo\n`;
-    filteredLogs.forEach(l => {
-      csv += `"${l.date}","${l.hora_inicio}","${l.hora_fim}","${l.total_horas}","${l.resumo.replace(/"/g, '""')}"\n`;
-    });
-    csv += `\nCHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Solução,Status\n`;
-    filteredTickets.forEach(t => {
-      let sla = '';
-      if (t.created_at && t.resolved_at) {
-        const diffMs = new Date(t.resolved_at) - new Date(t.created_at);
-        const h = Math.floor(diffMs / (1000 * 60 * 60));
-        const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        sla = `${h}h ${m}m`;
-      }
-      csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref}","${t.cliente}","${t.requester || ''}","${t.category || ''}","${t.priority || ''}","${t.description.replace(/"/g, '""')}","${(t.solution || '').replace(/"/g, '""')}","${t.status}"\n`;
-    });
+    let csv = `Relatório de Atividade - ${formatMonthLabel(selectedMonth)}\nNome: ${profile.name} | CPF: ${cpfFmt} | Cargo: ${profile.cargo}\n\n`;
+    
+    if (includeLogs) {
+      csv += `REGISTROS DE PONTO\nData,Início,Fim,Total Horas,Resumo\n`;
+      filteredLogs.forEach(l => {
+        csv += `"${l.date}","${l.hora_inicio}","${l.hora_fim}","${l.total_horas}","${l.resumo.replace(/"/g, '""')}"\n`;
+      });
+      csv += `\n`;
+    }
+
+    if (includeTickets) {
+      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Solução,Status\n`;
+      filteredTickets.forEach(t => {
+        let sla = '';
+        if (t.created_at && t.resolved_at) {
+          const diffMs = new Date(t.resolved_at) - new Date(t.created_at);
+          const h = Math.floor(diffMs / (1000 * 60 * 60));
+          const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          sla = `${h}h ${m}m`;
+        }
+        csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref}","${t.cliente}","${t.requester || ''}","${t.category || ''}","${t.priority || ''}","${t.description.replace(/"/g, '""')}","${(t.solution || '').replace(/"/g, '""')}","${t.status}"\n`;
+      });
+    }
+
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -105,38 +116,40 @@ export default function Relatorio({ logs, tickets, profile }) {
 
     // Table
     let y = 118;
-    doc.setTextColor(...green);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REGISTROS DE PONTO', 15, y);
-    y += 5;
-    doc.setFillColor(...green);
-    doc.rect(10, y, 190, 7, 'F');
-    doc.setTextColor(15, 25, 20);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    ['DATA', 'INÍCIO', 'FIM', 'HORAS', 'RESUMO'].forEach((h, i) => doc.text(h, [14, 46, 66, 82, 105][i], y + 5));
-    y += 8;
-
-    filteredLogs.forEach((log, i) => {
-      if (y > 260) { doc.addPage(); y = 20; }
-      if (i % 2 === 0) { doc.setFillColor(18, 30, 24); doc.rect(10, y - 1, 190, 7, 'F'); }
-      doc.setTextColor(220, 240, 235);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.text(log.date, 14, y + 4);
-      doc.text(log.hora_inicio, 46, y + 4);
-      doc.text(log.hora_fim, 66, y + 4);
+    if (includeLogs) {
       doc.setTextColor(...green);
-      doc.text(formatHours(log.total_horas), 82, y + 4);
-      doc.setTextColor(180, 210, 200);
-      doc.text(log.resumo.length > 55 ? log.resumo.substring(0, 55) + '…' : log.resumo, 105, y + 4);
-      y += 7;
-    });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REGISTROS DE PONTO', 15, y);
+      y += 5;
+      doc.setFillColor(...green);
+      doc.rect(10, y, 190, 7, 'F');
+      doc.setTextColor(15, 25, 20);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      ['DATA', 'INÍCIO', 'FIM', 'HORAS', 'RESUMO'].forEach((h, i) => doc.text(h, [14, 46, 66, 82, 105][i], y + 5));
+      y += 8;
+
+      filteredLogs.forEach((log, i) => {
+        if (y > 260) { doc.addPage(); y = 20; }
+        if (i % 2 === 0) { doc.setFillColor(18, 30, 24); doc.rect(10, y - 1, 190, 7, 'F'); }
+        doc.setTextColor(220, 240, 235);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text(log.date, 14, y + 4);
+        doc.text(log.hora_inicio, 46, y + 4);
+        doc.text(log.hora_fim, 66, y + 4);
+        doc.setTextColor(...green);
+        doc.text(formatHours(log.total_horas), 82, y + 4);
+        doc.setTextColor(180, 210, 200);
+        doc.text(log.resumo.length > 55 ? log.resumo.substring(0, 55) + '…' : log.resumo, 105, y + 4);
+        y += 7;
+      });
+    }
 
     // Tickets Table
-    if (filteredTickets.length > 0) {
-      y += 15;
+    if (includeTickets && filteredTickets.length > 0) {
+      y += 10;
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setTextColor(...green);
       doc.setFontSize(9);
@@ -224,6 +237,30 @@ export default function Relatorio({ logs, tickets, profile }) {
           </select>
         </div>
 
+        <div className="space-y-3 mb-6">
+          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Conteúdo do Relatório</label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-3 p-3 bg-surface2 border border-border rounded-xl cursor-pointer hover:border-green/30 transition-all">
+              <input 
+                type="checkbox" 
+                checked={includeLogs} 
+                onChange={(e) => setIncludeLogs(e.target.checked)}
+                className="w-4 h-4 accent-green"
+              />
+              <span className="text-[0.85rem] font-medium text-text">Registros de Ponto</span>
+            </label>
+            <label className="flex items-center gap-3 p-3 bg-surface2 border border-border rounded-xl cursor-pointer hover:border-green/30 transition-all">
+              <input 
+                type="checkbox" 
+                checked={includeTickets} 
+                onChange={(e) => setIncludeTickets(e.target.checked)}
+                className="w-4 h-4 accent-green"
+              />
+              <span className="text-[0.85rem] font-medium text-text">Chamados de TI</span>
+            </label>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <button 
             onClick={exportPDF}
@@ -265,7 +302,9 @@ export default function Relatorio({ logs, tickets, profile }) {
               </div>
             </div>
             <div className="h-px bg-border my-4" />
-            <p className="text-text-muted text-[0.75rem]">Inclui {filteredLogs.length} registros de ponto e {filteredTickets.length} chamados.</p>
+            <p className="text-text-muted text-[0.75rem]">
+              Inclui {includeLogs ? filteredLogs.length : 0} registros de ponto e {includeTickets ? filteredTickets.length : 0} chamados.
+            </p>
           </div>
         ) : (
           <div className="text-center py-8 text-text-muted flex flex-col items-center gap-3 opacity-50">
