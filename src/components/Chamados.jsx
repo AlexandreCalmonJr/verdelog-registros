@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Pencil, Trash2, ClipboardList } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare } from 'lucide-react';
 
 export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket }) {
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
   const [filter, setFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('all');
   const [prioFilter, setPrioFilter] = useState('all');
@@ -49,16 +50,141 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
     other: 'Outros'
   };
 
+  const kanbanColumns = [
+    { id: 'open', title: 'A Fazer', status: 'open' },
+    { id: 'pending', title: 'Pendente', status: 'pending' },
+    { id: 'escalated', title: 'Escalado', status: 'escalated' },
+    { id: 'resolved', title: 'Concluído', status: 'resolved' }
+  ];
+
+  const handleDragStart = (e, ticketId) => {
+    e.dataTransfer.setData('ticketId', ticketId);
+  };
+
+  const handleDrop = (e, status) => {
+    e.preventDefault();
+    const ticketId = e.dataTransfer.getData('ticketId');
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (ticket && ticket.status !== status) {
+      onEditTicket({ ...ticket, status });
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const renderTicketCard = (t, isKanban = false) => (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      key={t.id} 
+      draggable={isKanban}
+      onDragStart={(e) => isKanban && handleDragStart(e, t.id)}
+      className={`bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'}`}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
+            {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
+            {t.requester && <span className="text-[0.72rem] text-text-muted">({t.requester})</span>}
+            {t.category && (
+              <span className="text-[0.6rem] bg-surface2 border border-border px-1.5 py-0.5 rounded text-text-muted uppercase font-bold">
+                {categoryMap[t.category] || t.category}
+              </span>
+            )}
+          </div>
+          <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
+          {t.photo_url && (
+            <div className="mt-2">
+              <img 
+                src={t.photo_url} 
+                alt="Evidência" 
+                className="w-16 h-16 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity" 
+                onClick={() => window.open(t.photo_url, '_blank')}
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+          {t.status === 'resolved' && t.solution && !isKanban && (
+            <div className="mt-2 p-2 bg-green/5 border-l-2 border-green rounded-r-lg text-[0.8rem] text-text-dim italic">
+              <span className="font-bold text-green not-italic">Solução:</span> {t.solution}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+          {!isKanban && (
+            <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
+              {statusMap[t.status].label}
+            </span>
+          )}
+          {t.priority && (
+            <span className={`text-[0.6rem] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${priorityMap[t.priority]?.cls || priorityMap.medium.cls}`}>
+              {priorityMap[t.priority]?.label || 'Média'}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
+        <div className="flex flex-col">
+          <span className="font-mono text-[0.65rem] text-text-muted">{t.dateDisplay} {t.hora}</span>
+          {t.data_fim && !isKanban && (
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="font-mono text-[0.65rem] text-green">Fim: {t.data_fim} {t.hora_fim}</span>
+              {getSLA(t) && (
+                <span className="text-[0.6rem] bg-green/10 text-green px-1.5 py-0.5 rounded font-bold">
+                  SLA: {getSLA(t)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => onEditTicket(t)}
+            className="p-1.5 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+          >
+            <Pencil size={14} />
+          </button>
+          <button 
+            onClick={() => onDeleteTicket(t.id)}
+            className="p-1.5 rounded-lg border border-border text-red/60 hover:text-red hover:bg-red/10 transition-all"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-bold text-[1.05rem]">Chamados</h2>
-        <button 
-          onClick={onNewTicket}
-          className="bg-green text-bg font-semibold text-[0.85rem] px-4 py-2 rounded-lg shadow-[0_4px_20px_rgba(0,200,150,0.3)] hover:bg-green-dim transition-all flex items-center gap-2"
-        >
-          <Plus size={16} /> Novo
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-surface border border-border rounded-lg p-1">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-surface2 text-green' : 'text-text-muted hover:text-text'}`}
+            >
+              <LayoutList size={16} />
+            </button>
+            <button 
+              onClick={() => setViewMode('kanban')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-surface2 text-green' : 'text-text-muted hover:text-text'}`}
+            >
+              <KanbanSquare size={16} />
+            </button>
+          </div>
+          <button 
+            onClick={onNewTicket}
+            className="bg-green text-bg font-semibold text-[0.85rem] px-4 py-2 rounded-lg shadow-[0_4px_20px_rgba(0,200,150,0.3)] hover:bg-green-dim transition-all flex items-center gap-2"
+          >
+            <Plus size={16} /> Novo
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -106,101 +232,55 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
         </select>
       </div>
 
-      <div className="space-y-3">
-        <AnimatePresence>
-          {filteredTickets.length > 0 ? (
-            filteredTickets.map((t) => (
+      {viewMode === 'list' ? (
+        <div className="space-y-3">
+          <AnimatePresence>
+            {filteredTickets.length > 0 ? (
+              filteredTickets.map((t) => renderTicketCard(t, false))
+            ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                key={t.id} 
-                className="bg-surface border border-border rounded-2xl p-4"
+                className="text-center py-12 text-text-muted flex flex-col items-center gap-3 opacity-50"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
-                      {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
-                      {t.requester && <span className="text-[0.72rem] text-text-muted">({t.requester})</span>}
-                      {t.category && (
-                        <span className="text-[0.6rem] bg-surface2 border border-border px-1.5 py-0.5 rounded text-text-muted uppercase font-bold">
-                          {categoryMap[t.category] || t.category}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
-                    {t.photo_url && (
-                      <div className="mt-2">
-                        <img 
-                          src={t.photo_url} 
-                          alt="Evidência" 
-                          className="w-20 h-20 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity" 
-                          onClick={() => window.open(t.photo_url, '_blank')}
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-                    {t.status === 'resolved' && t.solution && (
-                      <div className="mt-2 p-2 bg-green/5 border-l-2 border-green rounded-r-lg text-[0.8rem] text-text-dim italic">
-                        <span className="font-bold text-green not-italic">Solução:</span> {t.solution}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
-                      {statusMap[t.status].label}
-                    </span>
-                    {t.priority && (
-                      <span className={`text-[0.6rem] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${priorityMap[t.priority]?.cls || priorityMap.medium.cls}`}>
-                        {priorityMap[t.priority]?.label || 'Média'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
-                  <div className="flex flex-col">
-                    <span className="font-mono text-[0.7rem] text-text-muted">Aberto: {t.dateDisplay} {t.hora}</span>
-                    {t.data_fim && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[0.7rem] text-green">Resolvido: {t.data_fim} {t.hora_fim}</span>
-                        {getSLA(t) && (
-                          <span className="text-[0.65rem] bg-green/10 text-green px-1.5 py-0.5 rounded font-bold">
-                            SLA: {getSLA(t)}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => onEditTicket(t)}
-                      className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button 
-                      onClick={() => onDeleteTicket(t.id)}
-                      className="p-2 rounded-lg border border-border text-red/60 hover:text-red hover:bg-red/10 transition-all"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
+                <ClipboardList size={40} />
+                <p className="text-[0.85rem]">Sem chamados encontrados</p>
               </motion.div>
-            ))
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 text-text-muted flex flex-col items-center gap-3 opacity-50"
-            >
-              <ClipboardList size={40} />
-              <p className="text-[0.85rem]">Sem chamados encontrados</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+          {kanbanColumns.map(col => {
+            const colTickets = filteredTickets.filter(t => t.status === col.status);
+            return (
+              <div 
+                key={col.id} 
+                className="min-w-[280px] w-[280px] flex-shrink-0 bg-surface2/50 border border-border rounded-2xl p-3 snap-center flex flex-col"
+                onDrop={(e) => handleDrop(e, col.status)}
+                onDragOver={handleDragOver}
+              >
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <h3 className="font-semibold text-[0.85rem] text-text-dim">{col.title}</h3>
+                  <span className="bg-surface border border-border text-text-muted text-[0.65rem] font-bold px-2 py-0.5 rounded-full">
+                    {colTickets.length}
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto no-scrollbar min-h-[150px]">
+                  <AnimatePresence>
+                    {colTickets.map(t => renderTicketCard(t, true))}
+                  </AnimatePresence>
+                  {colTickets.length === 0 && (
+                    <div className="h-full flex items-center justify-center text-text-muted/50 text-[0.75rem] border-2 border-dashed border-border/50 rounded-xl p-4">
+                      Arraste chamados para cá
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
