@@ -116,6 +116,7 @@ export default function Inventory({ user, onNewTicket, showToast }) {
       brand: formData.get('brand'),
       model: formData.get('model'),
       serial_number: formData.get('serial_number'),
+      patrimony_number: formData.get('patrimony_number') || null,
       sector_id: formData.get('sector_id') || null,
       assigned_user_name: formData.get('assigned_user_name') || null,
       status: formData.get('status'),
@@ -436,7 +437,14 @@ export default function Inventory({ user, onNewTicket, showToast }) {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm mb-1">{equip.name}</h4>
-                  <p className="text-[0.7rem] text-text-muted mb-2">{equip.brand} {equip.model} · SN: {equip.serial_number}</p>
+                  <p className="text-[0.7rem] text-text-muted mb-2">
+                    {equip.brand} {equip.model} · SN: {equip.serial_number}
+                    {equip.patrimony_number && (
+                      <span className="block mt-0.5 text-green font-semibold">
+                        Patrimônio: {equip.patrimony_number}
+                      </span>
+                    )}
+                  </p>
                   
                   {/* Assigned User */}
                   {equip.assigned_user_name && (
@@ -666,9 +674,15 @@ export default function Inventory({ user, onNewTicket, showToast }) {
                   <input name="model" defaultValue={editingItem?.model} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Optiplex 3080" />
                 </div>
               </div>
-              <div>
-                <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nº de Série</label>
-                <input name="serial_number" defaultValue={editingItem?.serial_number} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="TAG / Serial" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nº de Série</label>
+                  <input name="serial_number" defaultValue={editingItem?.serial_number} required className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="TAG / Serial" />
+                </div>
+                <div>
+                  <label className="block text-[0.7rem] font-bold text-text-muted uppercase mb-1">Nº Patrimônio (Plaqueta)</label>
+                  <input name="patrimony_number" defaultValue={editingItem?.patrimony_number} className="w-full bg-surface2 border border-border rounded-xl p-2.5 text-sm outline-none focus:border-green" placeholder="Ex: 123456" />
+                </div>
               </div>
 
               {/* Technical Specs Section */}
@@ -750,14 +764,20 @@ export default function Inventory({ user, onNewTicket, showToast }) {
             <div className="bg-white p-6 rounded-2xl flex flex-col items-center text-black border-2 border-dashed border-border mb-6">
               <div id="printable-label-content" className="w-full flex flex-col items-center">
                 <div className="title" style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '4px' }}>{labelItem.name}</div>
-                <div className="subtitle" style={{ fontSize: '12px', color: '#444', marginBottom: '16px' }}>{labelItem.brand} {labelItem.model}</div>
+                <div className="subtitle" style={{ fontSize: '12px', color: '#444', marginBottom: '8px' }}>{labelItem.brand} {labelItem.model}</div>
+                
+                {labelItem.patrimony_number && (
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', backgroundColor: '#eee', padding: '4px 12px', borderRadius: '4px' }}>
+                    PATRIMÔNIO: {labelItem.patrimony_number}
+                  </div>
+                )}
                 
                 <div className="qr-wrapper" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-                  <QRCodeSVG value={labelItem.id} size={140} level="M" />
+                  <QRCodeSVG value={labelItem.patrimony_number || labelItem.id} size={120} level="M" />
                 </div>
                 
                 <div className="barcode-wrapper" style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                  <Barcode value={labelItem.serial_number || labelItem.name} width={1.5} height={40} fontSize={12} displayValue={true} background="#ffffff" lineColor="#000000" margin={0} />
+                  <Barcode value={labelItem.patrimony_number || labelItem.serial_number || labelItem.name} width={1.5} height={40} fontSize={12} displayValue={true} background="#ffffff" lineColor="#000000" margin={0} />
                 </div>
                 
                 <div className="footer" style={{ fontSize: '10px', color: '#666', marginTop: '8px' }}>VerdeIT - Gestão de Ativos</div>
