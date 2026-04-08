@@ -27,9 +27,10 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
 
   const statusMap = {
     open: { cls: 'bg-[rgba(255,179,71,0.12)] text-amber border-[rgba(255,179,71,0.2)]', label: 'Aberto' },
-    resolved: { cls: 'bg-[rgba(0,200,150,0.12)] text-green border-[rgba(0,200,150,0.2)]', label: 'Resolvido' },
+    in_progress: { cls: 'bg-[rgba(91,196,255,0.12)] text-blue border-[rgba(91,196,255,0.2)]', label: 'Em Andamento' },
     pending: { cls: 'bg-[rgba(255,77,109,0.12)] text-red border-[rgba(255,77,109,0.2)]', label: 'Pendente' },
-    escalated: { cls: 'bg-[rgba(91,196,255,0.12)] text-blue border-[rgba(91,196,255,0.2)]', label: 'Escalado' },
+    escalated: { cls: 'bg-purple-500/10 text-purple-500 border-purple-500/20', label: 'Escalado' },
+    resolved: { cls: 'bg-[rgba(0,200,150,0.12)] text-green border-[rgba(0,200,150,0.2)]', label: 'Resolvido' },
   };
 
   const priorityMap = {
@@ -52,8 +53,8 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
 
   const kanbanColumns = [
     { id: 'open', title: 'A Fazer', status: 'open' },
+    { id: 'in_progress', title: 'Em Andamento', status: 'in_progress' },
     { id: 'pending', title: 'Pendente', status: 'pending' },
-    { id: 'escalated', title: 'Escalado', status: 'escalated' },
     { id: 'resolved', title: 'Concluído', status: 'resolved' }
   ];
 

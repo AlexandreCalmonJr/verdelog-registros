@@ -231,6 +231,14 @@ export default function App() {
     const now = new Date();
     
     try {
+      let dateDisplay = now.toLocaleDateString('pt-BR');
+      if (data.date) {
+        const [year, month, day] = data.date.split('-');
+        if (year && month && day) {
+          dateDisplay = `${day}/${month}/${year}`;
+        }
+      }
+
       const ticketData = {
         ...data,
         user_id: user.id,
@@ -238,7 +246,7 @@ export default function App() {
         ponto_id: data.ponto_id || null,
         equipment_id: data.equipment_id || null, // Fix UUID error: convert "" to null
         date: data.date || now.toISOString().split('T')[0],
-        date_display: data.date_display || now.toLocaleDateString('pt-BR'),
+        date_display: dateDisplay,
         hora: data.hora || now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       };
 

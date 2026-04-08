@@ -68,7 +68,7 @@ export function TicketModal({
   equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '', notes: []
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', date: '', hora: '', notes: []
   });
   const [newNote, setNewNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
@@ -83,10 +83,16 @@ export function TicketModal({
       priority: ticket.priority || 'medium',
       requester: ticket.requester || '',
       photo_url: ticket.photo_url || '',
+      date: ticket.date || '',
       hora: ticket.hora || '',
       notes: ticket.notes || []
     });
-    else setFormData({ ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', hora: '', notes: [] });
+    else setFormData({ 
+      ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', 
+      date: new Date().toISOString().split('T')[0], 
+      hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), 
+      notes: [] 
+    });
     setSaving(false);
     setUploading(false);
     setNewNote('');
@@ -149,6 +155,32 @@ export function TicketModal({
             />
           </div>
           <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
+            <select 
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="open">Aberto (A Fazer)</option>
+              <option value="in_progress">Em Andamento</option>
+              <option value="pending">Pendente (Aguardando)</option>
+              <option value="escalated">Escalado</option>
+              <option value="resolved">Resolvido (Concluído)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Data Início</label>
+            <input 
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            />
+          </div>
+          <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Hora Início</label>
             <input 
               type="time"
@@ -181,19 +213,6 @@ export function TicketModal({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
-            <select 
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-            >
-              <option value="open">Aberto</option>
-              <option value="resolved">Resolvido</option>
-              <option value="pending">Pendente</option>
-              <option value="escalated">Escalado</option>
-            </select>
-          </div>
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Categoria</label>
             <select 
