@@ -31,7 +31,14 @@ const LoadingSpinner = () => (
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('verdeit_active_tab') || 'home';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('verdeit_active_tab', activeTab);
+  }, [activeTab]);
+
   const [logs, setLogs] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [equipment, setEquipment] = useState([]);

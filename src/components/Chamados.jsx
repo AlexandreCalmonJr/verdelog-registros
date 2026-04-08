@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare, Filter, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket, onUpdateTicketStatus }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
@@ -13,6 +13,13 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
 
   const [dragOverCol, setDragOverCol] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, catFilter, prioFilter, dateFilter, sectorFilter]);
 
   const filteredTickets = tickets.filter(t => {
     const statusMatch = filter === 'all' ? true : 
@@ -24,6 +31,9 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
     const sectorMatch = sectorFilter ? (t.cliente || '').toLowerCase().includes(sectorFilter.toLowerCase()) : true;
     return statusMatch && catMatch && prioMatch && dateMatch && sectorMatch;
   });
+
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getSLA = (t) => {
     if (!t.created_at || !t.resolved_at) return null;
@@ -277,8 +287,8 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
       {viewMode === 'list' ? (
         <div className="space-y-3">
           <AnimatePresence>
-            {filteredTickets.length > 0 ? (
-              filteredTickets.map((t) => renderTicketCard(t, false))
+            {paginatedTickets.length > 0 ? (
+              paginatedTickets.map((t) => renderTicketCard(t, false))
             ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -290,6 +300,33 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
               </motion.div>
             )}
           </AnimatePresence>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-surface border border-border rounded-2xl p-4 mt-4">
+              <span className="text-[0.75rem] text-text-muted">
+                Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredTickets.length)} de {filteredTickets.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-[0.75rem] font-medium text-text-dim px-2">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
