@@ -59,124 +59,106 @@ export default function Relatorio({ logs, tickets, profile }) {
     a.click();
   };
 
-  const exportPDF = () => {
+    const exportPDF = () => {
     if ((!includeLogs || !filteredLogs.length) && (!includeTickets || !filteredTickets.length)) return;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const green = [0, 200, 150];
-    const dark = [15, 25, 20];
-    const gray = [100, 120, 115];
+    const black = [0, 0, 0];
+    const darkGray = [60, 60, 60];
+    const lightGray = [220, 220, 220];
     const cpfFmt = profile.cpf ? maskCPF(profile.cpf) : '—';
 
-    // Background
-    doc.setFillColor(...dark);
-    doc.rect(0, 0, 210, 297, 'F');
-
     // Header
-    doc.setFillColor(...green);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(15, 25, 20);
-    doc.setFontSize(22);
+    doc.setTextColor(...black);
+    doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text('VerdeIT', 15, 18);
-    doc.setFontSize(11);
+    doc.text('VerdeIT', 15, 20);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('Relatório de Atividade', 15, 27);
-    doc.setFontSize(9);
-    doc.text(formatMonthLabel(selectedMonth).toUpperCase(), 15, 35);
+    doc.text('Relatório de Atividade', 15, 28);
+    doc.setFontSize(10);
+    doc.setTextColor(...darkGray);
+    doc.text(formatMonthLabel(selectedMonth).toUpperCase(), 15, 34);
 
-    // Profile Card
-    doc.setFillColor(20, 35, 28);
-    doc.roundedRect(10, 48, 190, 30, 3, 3, 'F');
-    doc.setTextColor(...green);
+    // Profile Card (Border only, no fill)
+    doc.setDrawColor(...black);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(10, 42, 190, 28, 2, 2);
+    doc.setTextColor(...black);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('SERVIDOR / COLABORADOR', 18, 56);
-    doc.setTextColor(220, 240, 235);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(profile.name || '—', 18, 63);
-    doc.setFontSize(8);
+    doc.text('SERVIDOR / COLABORADOR', 15, 50);
+    doc.setFontSize(12);
+    doc.text(profile.name || '—', 15, 58);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...gray);
-    doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 18, 73);
+    doc.setTextColor(...darkGray);
+    doc.text(`CPF: ${cpfFmt}   ·   Cargo: ${profile.cargo || '—'}   ·   E-mail: ${profile.email || '—'}`, 15, 66);
 
     // Table
-    let y = 86;
+    let y = 80;
     if (includeLogs && filteredLogs.length > 0) {
-      doc.setTextColor(...green);
-      doc.setFontSize(9);
+      doc.setTextColor(...black);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.text('REGISTROS DE PONTO', 15, y);
-      y += 5;
-      doc.setFillColor(...green);
-      doc.rect(10, y, 190, 7, 'F');
-      doc.setTextColor(15, 25, 20);
-      doc.setFontSize(7);
+      y += 4;
+      
+      // Table Header
+      doc.setFillColor(...lightGray);
+      doc.rect(10, y, 190, 8, 'F');
+      doc.setTextColor(...black);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      ['DATA', 'INÍCIO', 'FIM', 'HORAS', 'RESUMO'].forEach((h, i) => doc.text(h, [14, 46, 66, 82, 105][i], y + 5));
+      ['DATA', 'INÍCIO', 'FIM', 'HORAS', 'RESUMO'].forEach((h, i) => doc.text(h, [14, 46, 66, 86, 110][i], y + 5.5));
       y += 8;
 
       filteredLogs.forEach((log, i) => {
-        if (y > 260) { doc.addPage(); y = 20; }
-        if (i % 2 === 0) { doc.setFillColor(18, 30, 24); doc.rect(10, y - 1, 190, 7, 'F'); }
-        doc.setTextColor(220, 240, 235);
+        if (y > 270) { doc.addPage(); y = 20; }
+        // Alternating row background (very light gray)
+        if (i % 2 === 0) { doc.setFillColor(245, 245, 245); doc.rect(10, y, 190, 8, 'F'); }
+        
+        doc.setTextColor(...black);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.text(log.date, 14, y + 4);
-        doc.text(log.hora_inicio, 46, y + 4);
-        doc.text(log.hora_fim, 66, y + 4);
-        doc.setTextColor(...green);
-        doc.text(formatHours(log.total_horas), 82, y + 4);
-        doc.setTextColor(180, 210, 200);
-        doc.text(log.resumo.length > 55 ? log.resumo.substring(0, 55) + '…' : log.resumo, 105, y + 4);
-        y += 7;
+        doc.setFontSize(8);
+        doc.text(log.date, 14, y + 5.5);
+        doc.text(log.hora_inicio, 46, y + 5.5);
+        doc.text(log.hora_fim, 66, y + 5.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text(formatHours(log.total_horas), 86, y + 5.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...darkGray);
+        doc.text(log.resumo.length > 55 ? log.resumo.substring(0, 55) + '…' : log.resumo, 110, y + 5.5);
+        y += 8;
       });
     }
 
     // Tickets Table
     if (includeTickets && filteredTickets.length > 0) {
-      y += 10;
+      y += 12;
       if (y > 260) { doc.addPage(); y = 20; }
-      doc.setTextColor(...green);
-      doc.setFontSize(9);
+      doc.setTextColor(...black);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('CHAMADOS', 15, y);
-      y += 5;
-      doc.setFillColor(...green);
-      doc.rect(10, y, 190, 7, 'F');
-      doc.setTextColor(15, 25, 20);
-      doc.setFontSize(7);
+      doc.text('CHAMADOS DE TI', 15, y);
+      y += 4;
+      
+      // Table Header
+      doc.setFillColor(...lightGray);
+      doc.rect(10, y, 190, 8, 'F');
+      doc.setTextColor(...black);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      ['INÍCIO', 'REF', 'FIM', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO / SOLUÇÃO'].forEach((h, i) => doc.text(h, [14, 45, 65, 95, 120, 145][i], y + 5));
+      ['DATA/HORA INÍCIO', 'REF', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO / SOLUÇÃO'].forEach((h, i) => doc.text(h, [14, 48, 68, 90, 125][i], y + 5.5));
       y += 8;
 
       filteredTickets.forEach((t, i) => {
-        if (y > 260) { doc.addPage(); y = 20; }
-        if (i % 2 === 0) { doc.setFillColor(18, 30, 24); doc.rect(10, y - 1, 190, 10, 'F'); }
-        doc.setTextColor(220, 240, 235);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.text(`${t.dateDisplay || ''} ${t.hora || ''}`, 14, y + 4);
-        doc.text(t.ref || '—', 45, y + 4);
-        doc.text(t.data_fim ? `${t.data_fim} ${t.hora_fim || ''}` : '—', 65, y + 4);
-        
-        const statusLabel = t.status === 'resolved' ? 'Resolvido' : t.status === 'open' ? 'Aberto' : t.status === 'pending' ? 'Pendente' : 'Escalado';
-        doc.setTextColor(...(t.status === 'resolved' ? green : [255, 179, 71]));
-        doc.text(statusLabel, 95, y + 4);
-
-        doc.setTextColor(180, 210, 200);
-        doc.text(`${t.category || '—'} / ${t.priority || '—'}`, 120, y + 4);
-        
-        doc.setTextColor(180, 210, 200);
+        // Calculate row height based on content
         const requesterInfo = t.requester ? `[${t.requester}] ` : '';
-        const desc = (requesterInfo + t.description).length > 35 ? (requesterInfo + t.description).substring(0, 35) + '…' : (requesterInfo + t.description);
-        doc.text(desc, 145, y + 4);
+        const desc = (requesterInfo + t.description).length > 45 ? (requesterInfo + t.description).substring(0, 45) + '…' : (requesterInfo + t.description);
+        let sol = '';
+        let slaText = '';
         if (t.solution) {
-          doc.setTextColor(...green);
-          doc.setFontSize(6);
-          const sol = t.solution.length > 45 ? t.solution.substring(0, 45) + '…' : t.solution;
-          
-          let slaText = '';
+          sol = t.solution.length > 55 ? t.solution.substring(0, 55) + '…' : t.solution;
           if (t.created_at && t.resolved_at) {
             const start = new Date(t.created_at);
             const end = new Date(t.resolved_at);
@@ -185,18 +167,51 @@ export default function Relatorio({ logs, tickets, profile }) {
             const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
             slaText = ` (SLA: ${h}h ${m}m)`;
           }
-          
-          doc.text(`SOL: ${sol}${slaText}`, 145, y + 8);
         }
-        y += 10;
+        
+        const rowHeight = t.solution ? 14 : 9;
+        
+        if (y + rowHeight > 275) { doc.addPage(); y = 20; }
+        
+        // Alternating row background
+        if (i % 2 === 0) { doc.setFillColor(245, 245, 245); doc.rect(10, y, 190, rowHeight, 'F'); }
+        
+        doc.setTextColor(...black);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        
+        // Date and Time
+        const dateStr = t.dateDisplay ? t.dateDisplay.substring(0, 5) : ''; // Just DD/MM
+        doc.text(`${dateStr} ${t.hora || ''}`, 14, y + 5.5);
+        
+        doc.text(t.ref || '—', 48, y + 5.5);
+        
+        const statusLabel = t.status === 'resolved' ? 'Resolvido' : t.status === 'in_progress' ? 'Em Andamento' : t.status === 'open' ? 'Aberto' : t.status === 'pending' ? 'Pendente' : 'Escalado';
+        doc.setFont('helvetica', t.status === 'resolved' ? 'bold' : 'normal');
+        doc.text(statusLabel, 68, y + 5.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...darkGray);
+        doc.text(`${t.category || '—'} / ${t.priority || '—'}`, 90, y + 5.5);
+        
+        doc.setTextColor(...black);
+        doc.text(desc, 125, y + 5.5);
+        
+        if (t.solution) {
+          doc.setFontSize(7);
+          doc.setTextColor(...darkGray);
+          doc.text(`Solução: ${sol}${slaText}`, 125, y + 10.5);
+        }
+        
+        y += rowHeight;
       });
     }
 
     // Footer
-    doc.setFillColor(20, 35, 28);
-    doc.rect(0, 280, 210, 17, 'F');
-    doc.setTextColor(...gray);
-    doc.setFontSize(7);
+    doc.setDrawColor(...lightGray);
+    doc.line(10, 285, 200, 285);
+    doc.setTextColor(...darkGray);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · VerdeIT — Gestão de TI`, 105, 291, { align: 'center' });
 
