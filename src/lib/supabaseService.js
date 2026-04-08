@@ -89,13 +89,15 @@ export const supabaseService = {
   },
 
   // Tickets (Chamados)
-  async getTickets(userId) {
+  async getTickets(userId, role) {
     checkClient();
-    const { data, error } = await supabase
-      .from('tickets')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('tickets').select('*').order('created_at', { ascending: false });
+    
+    if (role !== 'admin_sistema' && role !== 'admin_ti' && role !== 'tecnico_ti') {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

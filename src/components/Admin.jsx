@@ -209,7 +209,7 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
                           className="bg-surface2 border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-green disabled:opacity-50"
                         >
                           <option value="colaborador">Colaborador</option>
-                          <option value="tecnico">Técnico de TI</option>
+                          <option value="tecnico_ti">Técnico de TI</option>
                           <option value="admin_ti">Admin de TI</option>
                           {profile?.role === 'admin_sistema' && (
                             <option value="admin_sistema">Admin do Sistema</option>

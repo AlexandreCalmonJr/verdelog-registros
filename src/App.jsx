@@ -134,10 +134,19 @@ export default function App() {
   const loadUserData = async (userId) => {
     try {
       // 1. Fetch critical data first (Profile and Active Shift)
-      const [p, s] = await Promise.all([
+      let [p, s] = await Promise.all([
         supabaseService.getProfile(userId),
         supabaseService.getActiveShift(userId)
       ]);
+
+      // Auto-promote specific user to admin if not already
+      if (user?.email === 'Alexandrecalmonjunior@gmail.com' && p?.role !== 'admin_sistema') {
+        try {
+          p = await supabaseService.upsertProfile({ ...p, id: userId, role: 'admin_sistema', email: user.email });
+        } catch (e) {
+          console.error("Failed to auto-promote user", e);
+        }
+      }
 
       setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
       
@@ -154,7 +163,7 @@ export default function App() {
       // 2. Fetch non-critical data in the background
       const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId),
-        supabaseService.getTickets(userId),
+        supabaseService.getTickets(userId, p?.role),
         supabaseService.getEquipment(),
         supabaseService.getSectors()
       ]);

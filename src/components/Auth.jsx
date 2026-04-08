@@ -98,7 +98,7 @@ export default function Auth({ onLogin }) {
                   className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all"
                 >
                   <option value="colaborador">Colaborador (Padrão)</option>
-                  <option value="tecnico">Técnico de TI</option>
+                  <option value="tecnico_ti">Técnico de TI</option>
                   <option value="admin_ti">Administrador de TI</option>
                   <option value="admin_sistema">Administrador do Sistema</option>
                 </select>
