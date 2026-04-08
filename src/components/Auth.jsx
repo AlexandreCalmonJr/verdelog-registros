@@ -7,6 +7,7 @@ export default function Auth({ onLogin }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [cargo, setCargo] = useState('Técnico de TI');
+  const [role, setRole] = useState('colaborador');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -37,7 +38,7 @@ export default function Auth({ onLogin }) {
     try {
       if (isSignUp) {
         if (!name) throw new Error('Nome é obrigatório');
-        await supabaseService.signUp(email, password, { name, cargo });
+        await supabaseService.signUp(email, password, { name, cargo, role });
         // Tenta logar imediatamente após o cadastro
         const user = await supabaseService.signIn(email, password);
         onLogin(user);
@@ -88,6 +89,19 @@ export default function Auth({ onLogin }) {
                   className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all"
                   placeholder="Ex: Analista de TI"
                 />
+              </div>
+              <div>
+                <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Nível de Acesso</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all"
+                >
+                  <option value="colaborador">Colaborador (Padrão)</option>
+                  <option value="tecnico">Técnico de TI</option>
+                  <option value="admin_ti">Administrador de TI</option>
+                  <option value="admin_sistema">Administrador do Sistema</option>
+                </select>
               </div>
             </>
           )}

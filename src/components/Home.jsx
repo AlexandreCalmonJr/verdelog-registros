@@ -11,8 +11,8 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 
-export default function Home({ user, onNavigate, stats, assignedEquipment }) {
-  const menuItems = [
+export default function Home({ user, onNavigate, stats, assignedEquipment, enabledModules, profile }) {
+  const allMenuItems = [
     {
       id: 'ponto',
       title: 'Ponto Eletrônico',
@@ -28,7 +28,8 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
       icon: <Monitor className="text-green-500" size={24} />,
       color: 'bg-green-500/10',
       borderColor: 'border-green-500/20',
-      badge: stats?.equipmentCount || 0
+      badge: stats?.equipmentCount || 0,
+      roles: ['admin_sistema', 'admin_ti', 'tecnico_ti']
     },
     {
       id: 'chamados',
@@ -45,7 +46,8 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
       description: 'Insumos, periféricos e movimentações.',
       icon: <Package className="text-orange-500" size={24} />,
       color: 'bg-orange-500/10',
-      borderColor: 'border-orange-500/20'
+      borderColor: 'border-orange-500/20',
+      roles: ['admin_sistema', 'admin_ti', 'tecnico_ti']
     },
     {
       id: 'historico',
@@ -61,9 +63,16 @@ export default function Home({ user, onNavigate, stats, assignedEquipment }) {
       description: 'Análise de dados e exportação PDF.',
       icon: <BarChart3 className="text-pink-500" size={24} />,
       color: 'bg-pink-500/10',
-      borderColor: 'border-pink-500/20'
+      borderColor: 'border-pink-500/20',
+      roles: ['admin_sistema', 'admin_ti']
     }
   ];
+
+  const menuItems = allMenuItems.filter(item => {
+    if (enabledModules && enabledModules[item.id] === false) return false;
+    if (item.roles && !item.roles.includes(profile?.role)) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-8 pb-20">

@@ -10,10 +10,11 @@ import {
   AlertTriangle,
   ChevronRight,
   X,
-  History
+  History,
+  ShieldAlert
 } from 'lucide-react';
 
-export default function Logistics({ user }) {
+export default function Logistics({ user, profile }) {
   const [supplies, setSupplies] = useState([]);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,8 +24,22 @@ export default function Logistics({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti' || profile?.role === 'tecnico_ti') {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [profile]);
+
+  if (profile?.role !== 'admin_sistema' && profile?.role !== 'admin_ti' && profile?.role !== 'tecnico_ti') {
+    return (
+      <div className="p-8 text-center bg-surface border border-border rounded-3xl">
+        <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
+        <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>
+        <p className="text-text-muted">Você não tem permissão para acessar a logística.</p>
+      </div>
+    );
+  }
 
   const fetchData = async () => {
     setLoading(true);

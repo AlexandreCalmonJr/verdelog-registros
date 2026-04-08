@@ -193,6 +193,27 @@ export function TicketModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Data Fim</label>
+            <input 
+              type="date"
+              value={formData.data_fim || ''}
+              onChange={(e) => setFormData({ ...formData, data_fim: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Hora Fim</label>
+            <input 
+              type="time"
+              value={formData.hora_fim || ''}
+              onChange={(e) => setFormData({ ...formData, hora_fim: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Setor / Órgão</label>
             <input 
               value={formData.cliente}

@@ -6,8 +6,9 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { QRCodeSVG } from 'qrcode.react';
 import Barcode from 'react-barcode';
+import { ShieldAlert } from 'lucide-react';
 
-export default function Inventory({ user, onNewTicket, showToast }) {
+export default function Inventory({ user, profile, onNewTicket, showToast }) {
   const [sectors, setSectors] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +27,22 @@ export default function Inventory({ user, onNewTicket, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti' || profile?.role === 'tecnico_ti') {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [profile]);
+
+  if (profile?.role !== 'admin_sistema' && profile?.role !== 'admin_ti' && profile?.role !== 'tecnico_ti') {
+    return (
+      <div className="p-8 text-center bg-surface border border-border rounded-3xl">
+        <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
+        <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>
+        <p className="text-text-muted">Você não tem permissão para acessar o inventário.</p>
+      </div>
+    );
+  }
 
   const fetchData = async () => {
     setLoading(true);

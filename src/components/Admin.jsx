@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Eye, 
@@ -12,10 +12,55 @@ import {
   History,
   Info,
   BookOpen,
-  ShieldAlert
+  ShieldAlert,
+  Users,
+  UserCog
 } from 'lucide-react';
+import { supabaseService } from '../lib/supabaseService';
 
-export default function Admin({ enabledModules, onToggleModule }) {
+export default function Admin({ enabledModules, onToggleModule, profile }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti') {
+      fetchUsers();
+    } else {
+      setLoading(false);
+    }
+  }, [profile]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      // In a real app, you might need a specific Edge Function to fetch all profiles if RLS restricts it.
+      // For this implementation, we assume the admin has RLS bypass or a policy allows reading all profiles.
+      const { data, error } = await supabaseService.supabase.from('profiles').select('*').order('name');
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      const { error } = await supabaseService.supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      alert('Nível de acesso atualizado com sucesso!');
+    } catch (error) {
+      alert('Erro ao atualizar nível de acesso: ' + error.message);
+    }
+  };
+
   const modules = [
     { id: 'home', icon: <Home size={18} />, label: 'Início', description: 'Painel principal com estatísticas' },
     { id: 'ponto', icon: <Clock size={18} />, label: 'Ponto', description: 'Registro de entrada e saída' },
@@ -28,19 +73,49 @@ export default function Admin({ enabledModules, onToggleModule }) {
     { id: 'tutorial', icon: <BookOpen size={18} />, label: 'Tutorial', description: 'Guia de uso de todas as funções' },
   ];
 
+  const [activeTab, setActiveTab] = useState('modules'); // 'modules', 'users'
+
+  if (profile?.role !== 'admin_sistema' && profile?.role !== 'admin_ti') {
+    return (
+      <div className="p-8 text-center bg-surface border border-border rounded-3xl">
+        <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
+        <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>
+        <p className="text-text-muted">Você não tem permissão para acessar o painel administrativo.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-green/10 text-green rounded-lg">
-          <Settings size={24} />
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green/10 text-green rounded-lg">
+            <Settings size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-display font-bold">Painel Administrativo</h2>
+            <p className="text-sm text-text-muted">Gerencie módulos e permissões de usuários.</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-display font-bold">Painel Administrativo</h2>
-          <p className="text-sm text-text-muted">Personalize quais módulos aparecem no seu menu lateral.</p>
+        <div className="flex bg-surface2 p-1 rounded-xl border border-border">
+          <button 
+            onClick={() => setActiveTab('modules')}
+            className={`px-4 py-1.5 rounded-lg text-[0.85rem] font-medium transition-all ${activeTab === 'modules' ? 'bg-green text-bg shadow-lg' : 'text-text-muted hover:text-text'}`}
+          >
+            Módulos
+          </button>
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`px-4 py-1.5 rounded-lg text-[0.85rem] font-medium transition-all ${activeTab === 'users' ? 'bg-green text-bg shadow-lg' : 'text-text-muted hover:text-text'}`}
+          >
+            Usuários
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {activeTab === 'modules' ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {modules.map((mod) => (
           <div 
             key={mod.id}
@@ -86,18 +161,69 @@ export default function Admin({ enabledModules, onToggleModule }) {
         </p>
       </div>
 
-      <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex gap-3 items-start mt-4">
-        <ShieldAlert className="text-red-500 shrink-0" size={18} />
-        <div className="text-[0.75rem] text-red-500/90 leading-relaxed">
-          <strong className="block mb-1 text-red-500">Segurança de Dados (RLS)</strong>
-          <p>Para evitar roubo de dados sensíveis (como CPF e e-mails), é fundamental ativar o <strong>Row Level Security (RLS)</strong> no painel do Supabase. O RLS garante que cada usuário só possa ler e editar os dados que lhe pertencem.</p>
-          <ul className="list-disc pl-4 mt-2 space-y-1 opacity-80">
-            <li>Acesse o painel do Supabase &gt; Authentication &gt; Policies.</li>
-            <li>Ative o RLS para todas as tabelas (profiles, logs, tickets, etc).</li>
-            <li>Crie políticas permitindo acesso apenas onde <code className="bg-red-500/20 px-1 rounded">auth.uid() = user_id</code>.</li>
-          </ul>
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex gap-3 items-start mt-4">
+            <ShieldAlert className="text-red-500 shrink-0" size={18} />
+            <div className="text-[0.75rem] text-red-500/90 leading-relaxed">
+              <strong className="block mb-1 text-red-500">Segurança de Dados (RLS)</strong>
+              <p>Para evitar roubo de dados sensíveis (como CPF e e-mails), é fundamental ativar o <strong>Row Level Security (RLS)</strong> no painel do Supabase. O RLS garante que cada usuário só possa ler e editar os dados que lhe pertencem.</p>
+              <ul className="list-disc pl-4 mt-2 space-y-1 opacity-80">
+                <li>Acesse o painel do Supabase &gt; Authentication &gt; Policies.</li>
+                <li>Ative o RLS para todas as tabelas (profiles, logs, tickets, etc).</li>
+                <li>Crie políticas permitindo acesso apenas onde <code className="bg-red-500/20 px-1 rounded">auth.uid() = user_id</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-surface border border-border rounded-3xl p-6">
+          <div className="flex items-center gap-2 mb-6 text-green">
+            <Users size={20} />
+            <h3 className="font-bold text-lg">Gestão de Usuários e Permissões</h3>
+          </div>
+          
+          {loading ? (
+            <div className="text-center py-8 text-text-muted">Carregando usuários...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border text-xs uppercase tracking-wider text-text-muted">
+                    <th className="pb-3 font-semibold">Nome / E-mail</th>
+                    <th className="pb-3 font-semibold">Cargo</th>
+                    <th className="pb-3 font-semibold">Nível de Acesso</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {users.map(u => (
+                    <tr key={u.id} className="border-b border-border/50 hover:bg-surface2/50 transition-colors">
+                      <td className="py-4">
+                        <div className="font-bold">{u.name}</div>
+                        <div className="text-xs text-text-muted">{u.email}</div>
+                      </td>
+                      <td className="py-4 text-text-dim">{u.cargo || '—'}</td>
+                      <td className="py-4">
+                        <select
+                          value={u.role || 'colaborador'}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          disabled={profile?.role !== 'admin_sistema' && u.role === 'admin_sistema'} // Apenas admin_sistema pode alterar outro admin_sistema
+                          className="bg-surface2 border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-green disabled:opacity-50"
+                        >
+                          <option value="colaborador">Colaborador</option>
+                          <option value="tecnico">Técnico de TI</option>
+                          <option value="admin_ti">Admin de TI</option>
+                          {profile?.role === 'admin_sistema' && (
+                            <option value="admin_sistema">Admin do Sistema</option>
+                          )}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -40,17 +40,21 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
   const allNavItems = [
     { id: 'home', icon: <Home size={18} />, label: 'Início' },
     { id: 'ponto', icon: <Clock size={18} />, label: 'Ponto' },
-    { id: 'inventario', icon: <Monitor size={18} />, label: 'Inventário' },
-    { id: 'logistica', icon: <Package size={18} />, label: 'Logística' },
+    { id: 'inventario', icon: <Monitor size={18} />, label: 'Inventário', roles: ['admin_sistema', 'admin_ti', 'tecnico_ti'] },
+    { id: 'logistica', icon: <Package size={18} />, label: 'Logística', roles: ['admin_sistema', 'admin_ti', 'tecnico_ti'] },
     { id: 'chamados', icon: <ClipboardList size={18} />, label: 'Chamados' },
     { id: 'historico', icon: <History size={18} />, label: 'Histórico' },
-    { id: 'relatorio', icon: <FileText size={18} />, label: 'Relatório' },
+    { id: 'relatorio', icon: <FileText size={18} />, label: 'Relatório', roles: ['admin_sistema', 'admin_ti'] },
     { id: 'wiki', icon: <BookOpen size={18} />, label: 'Wiki' },
-    { id: 'admin', icon: <Settings size={18} />, label: 'Administrativo' },
+    { id: 'admin', icon: <Settings size={18} />, label: 'Administrativo', roles: ['admin_sistema', 'admin_ti'] },
     { id: 'tutorial', icon: <BookOpen size={18} />, label: 'Tutorial' },
   ];
 
-  const navItems = allNavItems.filter(item => enabledModules[item.id] !== false);
+  const navItems = allNavItems.filter(item => {
+    if (enabledModules[item.id] === false) return false;
+    if (item.roles && !item.roles.includes(profile?.role)) return false;
+    return true;
+  });
 
   const NavContent = ({ mobile = false }) => (
     <>

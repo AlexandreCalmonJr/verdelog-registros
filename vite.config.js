@@ -16,7 +16,7 @@ export default defineConfig(({mode}) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        includeAssets: ['favicon.svg'],
         manifest: {
           name: 'VerdeIT',
           short_name: 'VerdeIT',

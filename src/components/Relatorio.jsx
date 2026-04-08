@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatHours, formatMonthLabel, maskCPF } from '../lib/utils';
-import { FileDown, Table, FileText } from 'lucide-react';
+import { FileDown, Table, FileText, ShieldAlert } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 export default function Relatorio({ logs, tickets, profile }) {
@@ -8,6 +8,16 @@ export default function Relatorio({ logs, tickets, profile }) {
   const [includeLogs, setIncludeLogs] = useState(true);
   const [includeTickets, setIncludeTickets] = useState(true);
   const [ticketStatusFilter, setTicketStatusFilter] = useState('all'); // 'all', 'resolved', 'open'
+
+  if (profile?.role !== 'admin_sistema' && profile?.role !== 'admin_ti') {
+    return (
+      <div className="p-8 text-center bg-surface border border-border rounded-3xl">
+        <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
+        <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>
+        <p className="text-text-muted">Você não tem permissão para acessar os relatórios.</p>
+      </div>
+    );
+  }
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
@@ -38,7 +48,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     }
 
     if (includeTickets) {
-      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Solução,Status\n`;
+      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Status\n`;
       filteredTickets.forEach(t => {
         let sla = '';
         if (t.created_at && t.resolved_at) {
@@ -47,7 +57,16 @@ export default function Relatorio({ logs, tickets, profile }) {
           const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
           sla = `${h}h ${m}m`;
         }
-        csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref}","${t.cliente}","${t.requester || ''}","${t.category || ''}","${t.priority || ''}","${t.description.replace(/"/g, '""')}","${(t.solution || '').replace(/"/g, '""')}","${t.status}"\n`;
+        
+        const catMap = { 'hardware': 'Hardware', 'software': 'Software', 'network': 'Rede', 'printer': 'Impressora', 'other': 'Outros' };
+        const prioMap = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+        const statusMap = { 'open': 'Aberto', 'in_progress': 'Em Andamento', 'pending': 'Pendente', 'resolved': 'Resolvido', 'escalated': 'Escalado' };
+        
+        const cat = catMap[t.category] || t.category || '';
+        const prio = prioMap[t.priority] || t.priority || '';
+        const stat = statusMap[t.status] || t.status || '';
+
+        csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref}","${t.cliente}","${t.requester || ''}","${cat}","${prio}","${t.description.replace(/"/g, '""')}","${stat}"\n`;
       });
     }
 
@@ -148,28 +167,15 @@ export default function Relatorio({ logs, tickets, profile }) {
       doc.setTextColor(...black);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      ['DATA/HORA INÍCIO', 'REF', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO / SOLUÇÃO'].forEach((h, i) => doc.text(h, [14, 48, 68, 90, 125][i], y + 5.5));
+      ['INÍCIO', 'FIM', 'REF', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO'].forEach((h, i) => doc.text(h, [14, 34, 54, 74, 96, 130][i], y + 5.5));
       y += 8;
 
       filteredTickets.forEach((t, i) => {
         // Calculate row height based on content
         const requesterInfo = t.requester ? `[${t.requester}] ` : '';
-        const desc = (requesterInfo + t.description).length > 45 ? (requesterInfo + t.description).substring(0, 45) + '…' : (requesterInfo + t.description);
-        let sol = '';
-        let slaText = '';
-        if (t.solution) {
-          sol = t.solution.length > 55 ? t.solution.substring(0, 55) + '…' : t.solution;
-          if (t.created_at && t.resolved_at) {
-            const start = new Date(t.created_at);
-            const end = new Date(t.resolved_at);
-            const diffMs = end - start;
-            const h = Math.floor(diffMs / (1000 * 60 * 60));
-            const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-            slaText = ` (SLA: ${h}h ${m}m)`;
-          }
-        }
+        const desc = (requesterInfo + t.description).length > 55 ? (requesterInfo + t.description).substring(0, 55) + '…' : (requesterInfo + t.description);
         
-        const rowHeight = t.solution ? 14 : 9;
+        const rowHeight = 9;
         
         if (y + rowHeight > 275) { doc.addPage(); y = 20; }
         
@@ -184,24 +190,26 @@ export default function Relatorio({ logs, tickets, profile }) {
         const dateStr = t.dateDisplay ? t.dateDisplay.substring(0, 5) : ''; // Just DD/MM
         doc.text(`${dateStr} ${t.hora || ''}`, 14, y + 5.5);
         
-        doc.text(t.ref || '—', 48, y + 5.5);
+        const endDateStr = t.data_fim ? t.data_fim.substring(0, 5) : '';
+        doc.text(`${endDateStr} ${t.hora_fim || ''}`, 34, y + 5.5);
         
-        const statusLabel = t.status === 'resolved' ? 'Resolvido' : t.status === 'in_progress' ? 'Em Andamento' : t.status === 'open' ? 'Aberto' : t.status === 'pending' ? 'Pendente' : 'Escalado';
+        doc.text(t.ref || '—', 54, y + 5.5);
+        
+        const statusMap = { 'open': 'Aberto', 'in_progress': 'Em Andamento', 'pending': 'Pendente', 'resolved': 'Resolvido', 'escalated': 'Escalado' };
+        const statusLabel = statusMap[t.status] || t.status;
+        
         doc.setFont('helvetica', t.status === 'resolved' ? 'bold' : 'normal');
-        doc.text(statusLabel, 68, y + 5.5);
+        doc.text(statusLabel, 74, y + 5.5);
 
+        const catMap = { 'hardware': 'Hardware', 'software': 'Software', 'network': 'Rede', 'printer': 'Impressora', 'other': 'Outros' };
+        const prioMap = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+        
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...darkGray);
-        doc.text(`${t.category || '—'} / ${t.priority || '—'}`, 90, y + 5.5);
+        doc.text(`${catMap[t.category] || t.category || '—'} / ${prioMap[t.priority] || t.priority || '—'}`, 96, y + 5.5);
         
         doc.setTextColor(...black);
-        doc.text(desc, 125, y + 5.5);
-        
-        if (t.solution) {
-          doc.setFontSize(7);
-          doc.setTextColor(...darkGray);
-          doc.text(`Solução: ${sol}${slaText}`, 125, y + 10.5);
-        }
+        doc.text(desc, 130, y + 5.5);
         
         y += rowHeight;
       });

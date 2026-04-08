@@ -101,6 +101,18 @@ export default function App() {
       return;
     }
     
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        await loadUserData(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    checkSession();
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChanged(async (event, session) => {
       if (session) {
         const u = session.user;
@@ -112,8 +124,8 @@ export default function App() {
         setLogs([]);
         setTickets([]);
         setIsWorking(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -172,6 +184,8 @@ export default function App() {
       
     } catch (error) {
       console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -292,13 +306,6 @@ export default function App() {
     const ticket = tickets.find(t => t.id === ticketId);
     if (!ticket) return;
     
-    if (newStatus === 'resolved' && !ticket.solution) {
-      showToast('Adicione uma solução para concluir o chamado.', 'error');
-      setSelectedTicket({ ...ticket, status: newStatus });
-      setModals({ ...modals, ticket: true });
-      return;
-    }
-    
     await saveTicket({ ...ticket, status: newStatus });
   };
 
@@ -346,6 +353,8 @@ export default function App() {
           onNavigate={setActiveTab} 
           stats={stats} 
           assignedEquipment={assignedEquipment}
+          enabledModules={enabledModules}
+          profile={profile}
         />
       )}
 
@@ -365,6 +374,7 @@ export default function App() {
       {activeTab === 'inventario' && (
         <Inventory 
           user={user} 
+          profile={profile}
           onNewTicket={(equipId) => { 
             setSelectedTicket({ equipment_id: equipId }); 
             setModals({ ...modals, ticket: true }); 
@@ -374,7 +384,7 @@ export default function App() {
       )}
 
       {activeTab === 'logistica' && (
-        <Logistics user={user} />
+        <Logistics user={user} profile={profile} />
       )}
 
       {activeTab === 'chamados' && (
@@ -413,6 +423,7 @@ export default function App() {
         <Admin 
           enabledModules={enabledModules}
           onToggleModule={toggleModule}
+          profile={profile}
         />
       )}
 
