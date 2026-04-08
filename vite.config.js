@@ -16,7 +16,8 @@ export default defineConfig(({mode}) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg'],
+        injectRegister: 'auto',
+        includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           name: 'VerdeIT',
           short_name: 'VerdeIT',

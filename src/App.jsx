@@ -105,7 +105,7 @@ export default function App() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
-        await loadUserData(session.user.id);
+        await loadUserData(session.user);
       } else {
         setLoading(false);
       }
@@ -117,7 +117,7 @@ export default function App() {
       if (session) {
         const u = session.user;
         setUser(u);
-        await loadUserData(u.id);
+        await loadUserData(u);
       } else {
         setUser(null);
         setProfile(null);
@@ -131,7 +131,9 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserData = async (userId) => {
+  const loadUserData = async (authUser) => {
+    if (!authUser) return;
+    const userId = authUser.id;
     try {
       // 1. Fetch critical data first (Profile and Active Shift)
       let [p, s] = await Promise.all([
@@ -140,15 +142,22 @@ export default function App() {
       ]);
 
       // Auto-promote specific user to admin if not already
-      if (user?.email === 'Alexandrecalmonjunior@gmail.com' && p?.role !== 'admin_sistema') {
+      if (authUser?.email?.toLowerCase() === 'alexandrecalmonjunior@gmail.com' && p?.role !== 'admin_sistema') {
         try {
-          p = await supabaseService.upsertProfile({ ...p, id: userId, role: 'admin_sistema', email: user.email });
+          p = await supabaseService.upsertProfile({ 
+            ...p, 
+            id: userId, 
+            role: 'admin_sistema', 
+            email: authUser.email,
+            name: p?.name || 'Alexandre Calmon',
+            cargo: p?.cargo || 'Administrador'
+          });
         } catch (e) {
           console.error("Failed to auto-promote user", e);
         }
       }
 
-      setProfile(p || { name: '', cpf: '', cargo: '', email: user?.email || '' });
+      setProfile(p || { name: '', cpf: '', cargo: '', email: authUser?.email || '' });
       
       if (s) {
         setIsWorking(true);
@@ -202,7 +211,7 @@ export default function App() {
     // If it's a demo account, we might need to handle it differently 
     // but for now let's assume standard Supabase Auth
     setUser(u);
-    await loadUserData(u.id);
+    await loadUserData(u);
   };
 
   const handleLogout = async () => {
@@ -244,7 +253,7 @@ export default function App() {
       await supabaseService.linkTicketsToLog(user.id, newLog.id);
 
       await supabaseService.endShift(user.id);
-      await loadUserData(user.id);
+      await loadUserData(user);
       
       setIsWorking(false);
       setShiftStartTime(null);
@@ -290,7 +299,7 @@ export default function App() {
       }
 
       await supabaseService.upsertTicket(ticketData);
-      await loadUserData(user.id);
+      await loadUserData(user);
       setModals({ ...modals, ticket: false });
       setSelectedTicket(null);
       showToast('Chamado salvo com sucesso!');
@@ -304,7 +313,7 @@ export default function App() {
     if (!confirm('Deseja excluir este chamado?')) return;
     try {
       await supabaseService.deleteTicket(id);
-      await loadUserData(user.id);
+      await loadUserData(user);
       showToast('Chamado excluído!');
     } catch (error) {
       showToast('Erro ao excluir chamado: ' + error.message, 'error');

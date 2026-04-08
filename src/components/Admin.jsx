@@ -21,6 +21,7 @@ import { supabaseService } from '../lib/supabaseService';
 export default function Admin({ enabledModules, onToggleModule, profile }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti') {
@@ -58,6 +59,30 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
       alert('Nível de acesso atualizado com sucesso!');
     } catch (error) {
       alert('Erro ao atualizar nível de acesso: ' + error.message);
+    }
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    try {
+      const { error } = await supabaseService.supabase
+        .from('profiles')
+        .update({ 
+          name: editingUser.name, 
+          cargo: editingUser.cargo,
+          role: editingUser.role
+        })
+        .eq('id', editingUser.id);
+        
+      if (error) throw error;
+      
+      setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+      setEditingUser(null);
+      alert('Usuário atualizado com sucesso!');
+    } catch (error) {
+      alert('Erro ao atualizar usuário: ' + error.message);
     }
   };
 
@@ -185,36 +210,44 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
             <div className="text-center py-8 text-text-muted">Carregando usuários...</div>
           ) : (
             <div className="overflow-x-auto">
+              <div className="bg-amber/10 border border-amber/20 p-4 rounded-2xl flex gap-3 items-start mb-6">
+                <Info className="text-amber shrink-0" size={18} />
+                <p className="text-[0.75rem] text-amber/90 leading-relaxed">
+                  <strong>Nota sobre criação de usuários:</strong> Por motivos de segurança, novos usuários devem ser convidados ou criados diretamente pelo painel do Supabase (Authentication &gt; Add User). Após a criação, eles aparecerão aqui para edição de nome, cargo e permissões.
+                </p>
+              </div>
+
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border text-xs uppercase tracking-wider text-text-muted">
                     <th className="pb-3 font-semibold">Nome / E-mail</th>
                     <th className="pb-3 font-semibold">Cargo</th>
                     <th className="pb-3 font-semibold">Nível de Acesso</th>
+                    <th className="pb-3 font-semibold text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
                   {users.map(u => (
                     <tr key={u.id} className="border-b border-border/50 hover:bg-surface2/50 transition-colors">
                       <td className="py-4">
-                        <div className="font-bold">{u.name}</div>
+                        <div className="font-bold">{u.name || 'Sem nome'}</div>
                         <div className="text-xs text-text-muted">{u.email}</div>
                       </td>
                       <td className="py-4 text-text-dim">{u.cargo || '—'}</td>
                       <td className="py-4">
-                        <select
-                          value={u.role || 'colaborador'}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          disabled={profile?.role !== 'admin_sistema' && u.role === 'admin_sistema'} // Apenas admin_sistema pode alterar outro admin_sistema
-                          className="bg-surface2 border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-green disabled:opacity-50"
+                        <span className="px-2 py-1 bg-surface2 border border-border rounded-md text-xs">
+                          {u.role === 'admin_sistema' ? 'Admin do Sistema' : 
+                           u.role === 'admin_ti' ? 'Admin de TI' : 
+                           u.role === 'tecnico_ti' ? 'Técnico de TI' : 'Colaborador'}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        <button 
+                          onClick={() => setEditingUser(u)}
+                          className="p-2 text-text-muted hover:text-green hover:bg-green/10 rounded-lg transition-colors"
                         >
-                          <option value="colaborador">Colaborador</option>
-                          <option value="tecnico_ti">Técnico de TI</option>
-                          <option value="admin_ti">Admin de TI</option>
-                          {profile?.role === 'admin_sistema' && (
-                            <option value="admin_sistema">Admin do Sistema</option>
-                          )}
-                        </select>
+                          <Edit2 size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -222,6 +255,82 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de Edição de Usuário */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border2 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-surface2/50">
+              <h3 className="font-bold">Editar Usuário</h3>
+              <button onClick={() => setEditingUser(null)} className="p-1 hover:bg-surface rounded-lg text-text-muted">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateUser} className="p-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">E-mail (Apenas Leitura)</label>
+                <input 
+                  type="text" 
+                  value={editingUser.email} 
+                  disabled
+                  className="w-full bg-surface2 border border-border rounded-lg p-2.5 text-sm text-text-muted cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Nome Completo</label>
+                <input 
+                  type="text" 
+                  value={editingUser.name || ''} 
+                  onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="Nome do usuário"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Cargo / Função</label>
+                <input 
+                  type="text" 
+                  value={editingUser.cargo || ''} 
+                  onChange={(e) => setEditingUser({...editingUser, cargo: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="Ex: Analista de TI"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Nível de Acesso</label>
+                <select 
+                  value={editingUser.role || 'colaborador'} 
+                  onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                  disabled={profile?.role !== 'admin_sistema' && editingUser.role === 'admin_sistema'}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green disabled:opacity-50"
+                >
+                  <option value="colaborador">Colaborador</option>
+                  <option value="tecnico_ti">Técnico de TI</option>
+                  <option value="admin_ti">Admin de TI</option>
+                  {profile?.role === 'admin_sistema' && (
+                    <option value="admin_sistema">Admin do Sistema</option>
+                  )}
+                </select>
+              </div>
+              <div className="pt-4 flex justify-end gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-text-muted hover:bg-surface2 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-green text-bg hover:bg-green-dim transition-colors"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
