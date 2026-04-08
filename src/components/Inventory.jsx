@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
-import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive } from 'lucide-react';
+import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive, QrCode, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { QRCodeSVG } from 'qrcode.react';
+import Barcode from 'react-barcode';
 
 export default function Inventory({ user, onNewTicket, showToast }) {
   const [sectors, setSectors] = useState([]);
@@ -14,6 +16,8 @@ export default function Inventory({ user, onNewTicket, showToast }) {
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [showEquipModal, setShowEquipModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [labelItem, setLabelItem] = useState(null);
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
   const [equipmentTickets, setEquipmentTickets] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
@@ -207,6 +211,44 @@ export default function Inventory({ user, onNewTicket, showToast }) {
     });
 
     doc.save(`inventario-verdeit-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handlePrintLabel = () => {
+    const content = document.getElementById('printable-label-content').innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Por favor, permita pop-ups para imprimir a etiqueta.');
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Etiqueta - ${labelItem.name}</title>
+          <style>
+            @page { margin: 0; size: auto; }
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fff; color: #000; }
+            .label-container { text-align: center; padding: 20px; width: 100%; max-width: 300px; }
+            .title { font-weight: bold; font-size: 20px; margin-bottom: 4px; }
+            .subtitle { font-size: 12px; color: #444; margin-bottom: 16px; }
+            .qr-wrapper { margin-bottom: 16px; display: flex; justify-content: center; }
+            .barcode-wrapper { display: flex; justify-content: center; margin-bottom: 8px; }
+            .footer { font-size: 10px; color: #666; margin-top: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="label-container">
+            ${content}
+          </div>
+          <script>
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 300);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const filteredEquip = equipment.filter(e => {
@@ -421,6 +463,13 @@ export default function Inventory({ user, onNewTicket, showToast }) {
                 </div>
                 <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
                   <div className="flex gap-3">
+                    <button 
+                      onClick={() => { setLabelItem(equip); setShowLabelModal(true); }}
+                      className="text-[0.7rem] font-bold text-text-dim flex items-center gap-1 hover:text-text transition-all"
+                      title="Gerar Etiqueta"
+                    >
+                      <QrCode size={14} /> Etiqueta
+                    </button>
                     <button 
                       onClick={() => { setEditingItem(equip); setShowMaintenanceModal(true); fetchMaintenance(equip.id); }}
                       className="text-[0.7rem] font-bold text-green flex items-center gap-1 hover:underline"
@@ -684,6 +733,46 @@ export default function Inventory({ user, onNewTicket, showToast }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Label Modal */}
+      {showLabelModal && labelItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80">
+          <div className="bg-surface border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold">Etiqueta de Patrimônio</h3>
+              <button onClick={() => setShowLabelModal(false)} className="p-2 hover:bg-surface2 rounded-full transition-all"><X size={20} /></button>
+            </div>
+            
+            {/* Printable Area Preview */}
+            <div className="bg-white p-6 rounded-2xl flex flex-col items-center text-black border-2 border-dashed border-border mb-6">
+              <div id="printable-label-content" className="w-full flex flex-col items-center">
+                <div className="title" style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '4px' }}>{labelItem.name}</div>
+                <div className="subtitle" style={{ fontSize: '12px', color: '#444', marginBottom: '16px' }}>{labelItem.brand} {labelItem.model}</div>
+                
+                <div className="qr-wrapper" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                  <QRCodeSVG value={labelItem.id} size={140} level="M" />
+                </div>
+                
+                <div className="barcode-wrapper" style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                  <Barcode value={labelItem.serial_number || labelItem.name} width={1.5} height={40} fontSize={12} displayValue={true} background="#ffffff" lineColor="#000000" margin={0} />
+                </div>
+                
+                <div className="footer" style={{ fontSize: '10px', color: '#666', marginTop: '8px' }}>VerdeIT - Gestão de Ativos</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowLabelModal(false)} className="flex-1 bg-surface2 text-text-dim p-3 rounded-xl font-bold text-sm hover:bg-border transition-all">Fechar</button>
+              <button 
+                onClick={handlePrintLabel}
+                className="flex-1 bg-green text-bg p-3 rounded-xl font-bold text-sm shadow-lg shadow-green/20 flex items-center justify-center gap-2"
+              >
+                <Printer size={18} /> Imprimir
+              </button>
+            </div>
           </div>
         </div>
       )}
