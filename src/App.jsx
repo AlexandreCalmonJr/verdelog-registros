@@ -281,6 +281,20 @@ export default function App() {
     }
   };
 
+  const updateTicketStatus = async (ticketId, newStatus) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    
+    if (newStatus === 'resolved' && !ticket.solution) {
+      showToast('Adicione uma solução para concluir o chamado.', 'error');
+      setSelectedTicket({ ...ticket, status: newStatus });
+      setModals({ ...modals, ticket: true });
+      return;
+    }
+    
+    await saveTicket({ ...ticket, status: newStatus });
+  };
+
   const saveProfile = async (p) => {
     if (!user) return;
     if (p.cpf && !validarCPF(p.cpf)) return alert('CPF inválido');
@@ -362,6 +376,7 @@ export default function App() {
           onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
           onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
           onDeleteTicket={deleteTicket}
+          onUpdateTicketStatus={updateTicketStatus}
         />
       )}
 

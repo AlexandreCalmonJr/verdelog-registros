@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare, Filter, Loader2 } from 'lucide-react';
 
-export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket }) {
+export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket, onUpdateTicketStatus }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('not_resolved');
   const [catFilter, setCatFilter] = useState('all');
   const [prioFilter, setPrioFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
+  const [sectorFilter, setSectorFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [dragOverCol, setDragOverCol] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const filteredTickets = tickets.filter(t => {
-    const statusMatch = filter === 'all' ? true : (filter === 'open' ? t.status !== 'resolved' : t.status === 'resolved');
+    const statusMatch = filter === 'all' ? true : 
+                        filter === 'not_resolved' ? t.status !== 'resolved' : 
+                        t.status === filter;
     const catMatch = catFilter === 'all' ? true : t.category === catFilter;
     const prioMatch = prioFilter === 'all' ? true : t.priority === prioFilter;
-    return statusMatch && catMatch && prioMatch;
+    const dateMatch = dateFilter ? t.date === dateFilter : true;
+    const sectorMatch = sectorFilter ? (t.cliente || '').toLowerCase().includes(sectorFilter.toLowerCase()) : true;
+    return statusMatch && catMatch && prioMatch && dateMatch && sectorMatch;
   });
 
   const getSLA = (t) => {
@@ -62,17 +72,30 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
     e.dataTransfer.setData('ticketId', ticketId);
   };
 
-  const handleDrop = (e, status) => {
+  const handleDrop = async (e, status) => {
     e.preventDefault();
+    setDragOverCol(null);
     const ticketId = e.dataTransfer.getData('ticketId');
     const ticket = tickets.find(t => t.id === ticketId);
     if (ticket && ticket.status !== status) {
-      onEditTicket({ ...ticket, status });
+      if (onUpdateTicketStatus) {
+        setUpdatingId(ticketId);
+        await onUpdateTicketStatus(ticketId, status);
+        setUpdatingId(null);
+      } else {
+        onEditTicket({ ...ticket, status });
+      }
     }
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, status) => {
     e.preventDefault();
+    if (dragOverCol !== status) setDragOverCol(status);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragOverCol(null);
   };
 
   const renderTicketCard = (t, isKanban = false) => (
@@ -83,8 +106,13 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
       key={t.id} 
       draggable={isKanban}
       onDragStart={(e) => isKanban && handleDragStart(e, t.id)}
-      className={`bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'}`}
+      className={`relative bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'} ${updatingId === t.id ? 'opacity-50 pointer-events-none' : ''}`}
     >
+      {updatingId === t.id && (
+        <div className="absolute inset-0 bg-surface/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10">
+          <Loader2 className="animate-spin text-green" size={24} />
+        </div>
+      )}
       <div className="flex items-start justify-between mb-2">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -194,49 +222,56 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <button 
-          onClick={() => setFilter('all')}
-          className={`px-4 py-1.5 rounded-full text-[0.78rem] font-medium border transition-all whitespace-nowrap ${filter === 'all' ? 'bg-[rgba(0,200,150,0.12)] border-[rgba(0,200,150,0.3)] text-green' : 'bg-surface border-border text-text-dim'}`}
-        >
-          Todos
-        </button>
-        <button 
-          onClick={() => setFilter('open')}
-          className={`px-4 py-1.5 rounded-full text-[0.78rem] font-medium border transition-all whitespace-nowrap ${filter === 'open' ? 'bg-[rgba(0,200,150,0.12)] border-[rgba(0,200,150,0.3)] text-green' : 'bg-surface border-border text-text-dim'}`}
-        >
-          Abertos
-        </button>
-        <button 
-          onClick={() => setFilter('resolved')}
-          className={`px-4 py-1.5 rounded-full text-[0.78rem] font-medium border transition-all whitespace-nowrap ${filter === 'resolved' ? 'bg-[rgba(0,200,150,0.12)] border-[rgba(0,200,150,0.3)] text-green' : 'bg-surface border-border text-text-dim'}`}
-        >
-          Resolvidos
-        </button>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <select 
-          value={catFilter}
-          onChange={(e) => setCatFilter(e.target.value)}
-          className="bg-surface border border-border text-text-dim text-[0.7rem] px-3 py-1 rounded-lg outline-none focus:border-green"
-        >
-          <option value="all">Todas Categorias</option>
-          {Object.entries(categoryMap).map(([val, label]) => (
-            <option key={val} value={val}>{label}</option>
-          ))}
-        </select>
-        <select 
-          value={prioFilter}
-          onChange={(e) => setPrioFilter(e.target.value)}
-          className="bg-surface border border-border text-text-dim text-[0.7rem] px-3 py-1 rounded-lg outline-none focus:border-green"
-        >
-          <option value="all">Todas Prioridades</option>
-          <option value="low">Baixa</option>
-          <option value="medium">Média</option>
-          <option value="high">Alta</option>
-          <option value="critical">Crítica</option>
-        </select>
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
+        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowFilters(!showFilters)}>
+          <div className="flex items-center gap-2 text-[0.85rem] font-semibold text-text-dim">
+            <Filter size={16} /> Filtros de Busca
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[0.7rem] text-text-muted bg-surface2 px-2 py-1 rounded-md">{filteredTickets.length} resultados</span>
+            <span className="text-text-muted text-[0.7rem]">{showFilters ? 'Ocultar' : 'Mostrar'}</span>
+          </div>
+        </div>
+        
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 mt-2 border-t border-border/50">
+                <div>
+                  <label className="block text-[0.65rem] font-bold text-text-muted uppercase mb-1">Data</label>
+                  <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="w-full bg-surface2 border border-border rounded-lg p-2 text-[0.8rem] text-text outline-none focus:border-green transition-all" />
+                </div>
+                <div>
+                  <label className="block text-[0.65rem] font-bold text-text-muted uppercase mb-1">Setor / Órgão</label>
+                  <input type="text" placeholder="Buscar setor..." value={sectorFilter} onChange={e => setSectorFilter(e.target.value)} className="w-full bg-surface2 border border-border rounded-lg p-2 text-[0.8rem] text-text outline-none focus:border-green transition-all" />
+                </div>
+                <div>
+                  <label className="block text-[0.65rem] font-bold text-text-muted uppercase mb-1">Categoria</label>
+                  <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="w-full bg-surface2 border border-border rounded-lg p-2 text-[0.8rem] text-text outline-none focus:border-green transition-all">
+                    <option value="all">Todas as Categorias</option>
+                    {Object.entries(categoryMap).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[0.65rem] font-bold text-text-muted uppercase mb-1">Status</label>
+                  <select value={filter} onChange={e => setFilter(e.target.value)} className="w-full bg-surface2 border border-border rounded-lg p-2 text-[0.8rem] text-text outline-none focus:border-green transition-all">
+                    <option value="all">Todos os Status</option>
+                    <option value="not_resolved">Abertos / Pendentes</option>
+                    <option value="open">A Fazer</option>
+                    <option value="in_progress">Em Andamento</option>
+                    <option value="pending">Aguardando</option>
+                    <option value="resolved">Concluído</option>
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {viewMode === 'list' ? (
@@ -263,9 +298,14 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
             return (
               <div 
                 key={col.id} 
-                className="min-w-[280px] w-[280px] flex-shrink-0 bg-surface2/50 border border-border rounded-2xl p-3 snap-center flex flex-col"
+                className={`min-w-[280px] w-[280px] flex-shrink-0 border rounded-2xl p-3 snap-center flex flex-col transition-all duration-200 ${
+                  dragOverCol === col.status 
+                    ? 'bg-green/5 border-green/50 shadow-[0_0_15px_rgba(0,200,150,0.1)]' 
+                    : 'bg-surface2/50 border-border'
+                }`}
                 onDrop={(e) => handleDrop(e, col.status)}
-                onDragOver={handleDragOver}
+                onDragOver={(e) => handleDragOver(e, col.status)}
+                onDragLeave={handleDragLeave}
               >
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-semibold text-[0.85rem] text-text-dim">{col.title}</h3>
