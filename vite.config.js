@@ -24,6 +24,8 @@ export default defineConfig(({mode}) => {
           description: 'Gestão de TI, Inventário e Logística',
           theme_color: '#0a0f0d',
           background_color: '#0a0f0d',
+          display: 'standalone',
+          start_url: '/',
           icons: [
             {
               src: 'pwa-192x192.png',
