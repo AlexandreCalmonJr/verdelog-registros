@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import Auth from './components/Auth';
@@ -50,6 +50,8 @@ export default function App() {
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+  const ticketLimitRef = useRef(20);
+  const [hasMoreTickets, setHasMoreTickets] = useState(true);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -193,7 +195,7 @@ export default function App() {
       // 2. Fetch non-critical data in the background
       const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId),
-        supabaseService.getTickets(userId, p?.role),
+        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current),
         supabaseService.getEquipment(),
         supabaseService.getSectors()
       ]);
@@ -205,6 +207,7 @@ export default function App() {
 
       setLogs(logsWithTickets);
       setTickets(t || []);
+      setHasMoreTickets((t || []).length === ticketLimitRef.current);
       setEquipment(e || []);
       setSectors(sec || []);
 
@@ -232,7 +235,13 @@ export default function App() {
     // If it's a demo account, we might need to handle it differently 
     // but for now let's assume standard Supabase Auth
     setUser(u);
+    ticketLimitRef.current = 20;
     await loadUserData(u);
+  };
+
+  const loadMoreTickets = async () => {
+    ticketLimitRef.current += 20;
+    await loadUserData(user);
   };
 
   const handleLogout = async () => {
@@ -385,6 +394,17 @@ export default function App() {
       setActiveTab={setActiveTab}
       enabledModules={enabledModules}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
+      tickets={tickets}
+      equipment={equipment}
+      onSelectSearchResult={(result) => {
+        if (result.type === 'ticket') {
+          setActiveTab('chamados');
+          setSelectedTicket(result.data);
+          setModals({ ...modals, ticket: true });
+        } else if (result.type === 'equipment') {
+          setActiveTab('inventario');
+        }
+      }}
     >
       {activeTab === 'home' && (
         <Home 
@@ -429,6 +449,8 @@ export default function App() {
       {activeTab === 'chamados' && (
         <Chamados 
           tickets={tickets}
+          hasMoreTickets={hasMoreTickets}
+          onLoadMore={loadMoreTickets}
           onNewTicket={() => { setSelectedTicket(null); setModals({ ...modals, ticket: true }); }}
           onEditTicket={(t) => { setSelectedTicket(t); setModals({ ...modals, ticket: true }); }}
           onDeleteTicket={deleteTicket}

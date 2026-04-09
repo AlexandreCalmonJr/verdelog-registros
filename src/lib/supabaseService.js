@@ -89,9 +89,9 @@ export const supabaseService = {
   },
 
   // Tickets (Chamados)
-  async getTickets(userId, role) {
+  async getTickets(userId, role, limit = 500) {
     checkClient();
-    let query = supabase.from('tickets').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('tickets').select('*').order('created_at', { ascending: false }).limit(limit);
     
     if (role !== 'admin_sistema' && role !== 'admin_ti' && role !== 'tecnico_ti') {
       query = query.eq('user_id', userId);

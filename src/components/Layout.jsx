@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Omnisearch from './Omnisearch';
 import { 
   Clock, 
   ClipboardList, 
@@ -20,7 +21,7 @@ import {
   History
 } from 'lucide-react';
 
-export default function Layout({ user, profile, activeTab, setActiveTab, enabledModules, onOpenProfile, children }) {
+export default function Layout({ user, profile, activeTab, setActiveTab, enabledModules, onOpenProfile, tickets, equipment, onSelectSearchResult, children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const bottomNavRef = useRef(null);
@@ -170,40 +171,50 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
       </AnimatePresence>
 
       {/* Header - Mobile/Tablet Portrait Only */}
-      <nav className="md:hidden sticky top-0 z-[100] bg-bg border-b border-border p-3 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 -ml-2 rounded-lg hover:bg-surface2 text-text transition-colors"
-          >
-            <Menu size={22} />
-          </button>
-          <div className="font-display font-bold text-[1.1rem] tracking-tight flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-green to-[#00ffa3] rounded-lg flex items-center justify-center shadow-lg shadow-green/20">
-              <Cpu className="text-bg" size={14} strokeWidth={2.5} />
+      <nav className="md:hidden sticky top-0 z-[100] bg-bg border-b border-border p-3 px-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-surface2 text-text transition-colors"
+            >
+              <Menu size={22} />
+            </button>
+            <div className="font-display font-bold text-[1.1rem] tracking-tight flex items-center gap-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-green to-[#00ffa3] rounded-lg flex items-center justify-center shadow-lg shadow-green/20">
+                <Cpu className="text-bg" size={14} strokeWidth={2.5} />
+              </div>
+              Verde<span className="text-green">IT</span>
             </div>
-            Verde<span className="text-green">IT</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-[0.7rem] text-text-muted font-mono uppercase">{navDate}</span>
+            <button 
+              onClick={onOpenProfile}
+              className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+            >
+              <UserIcon size={18} />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-[0.7rem] text-text-muted font-mono uppercase">{navDate}</span>
-          <button 
-            onClick={onOpenProfile}
-            className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
-          >
-            <UserIcon size={18} />
-          </button>
+        <div className="w-full">
+          <Omnisearch tickets={tickets} equipment={equipment} onSelectResult={onSelectSearchResult} />
         </div>
       </nav>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Desktop Top Bar */}
-        <header className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border bg-surface shrink-0">
-          <div className="text-xs font-mono text-text-muted uppercase tracking-widest flex items-center gap-2">
+        <header className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border bg-surface shrink-0 gap-8">
+          <div className="text-xs font-mono text-text-muted uppercase tracking-widest flex items-center gap-2 shrink-0">
             <span className="text-green/50">#</span> {activeTab.replace('_', ' ')} <span className="opacity-30 mx-2">|</span> {navDate}
           </div>
-          <div className="flex items-center gap-4">
+          
+          <div className="flex-1 flex justify-center max-w-2xl">
+            <Omnisearch tickets={tickets} equipment={equipment} onSelectResult={onSelectSearchResult} />
+          </div>
+
+          <div className="flex items-center gap-4 shrink-0">
             <div className="text-[0.7rem] bg-surface2 px-3 py-1.5 rounded-full border border-border text-text-muted font-medium">
               Sessão Ativa: {profile?.name || user?.email}
             </div>

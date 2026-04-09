@@ -68,8 +68,14 @@ export default function Relatorio({ logs, tickets, profile }) {
         const stat = statusMap[t.status] || t.status || '';
         const desc = (t.description || '').replace(/"/g, '""');
         const sol = (t.solution || '').replace(/"/g, '""');
+        
+        let dataFimFormatada = t.data_fim || '';
+        if (dataFimFormatada.includes('-')) {
+          const [year, month, day] = dataFimFormatada.split('-');
+          dataFimFormatada = `${day}/${month}/${year}`;
+        }
 
-        csv += `"${typeStr}","${t.dateDisplay || ''}","${t.hora || ''}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref || ''}","${t.cliente || ''}","${t.requester || ''}","${cat}","${prio}","${desc}","${sol}","${stat}"\n`;
+        csv += `"${typeStr}","${t.date_display || ''}","${t.hora || ''}","${dataFimFormatada}","${t.hora_fim || ''}","${sla}","${t.ref || ''}","${t.cliente || ''}","${t.requester || ''}","${cat}","${prio}","${desc}","${sol}","${stat}"\n`;
       });
     }
 
@@ -197,10 +203,18 @@ export default function Relatorio({ logs, tickets, profile }) {
         doc.setFontSize(8);
         
         // Date and Time
-        const dateStr = t.dateDisplay ? t.dateDisplay.substring(0, 5) : ''; // Just DD/MM
+        const dateStr = t.date_display ? t.date_display.substring(0, 5) : ''; // Just DD/MM
         doc.text(`${dateStr} ${t.hora || ''}`, 14, y + 5.5);
         
-        const endDateStr = t.data_fim ? t.data_fim.substring(0, 5) : '';
+        let endDateStr = '';
+        if (t.data_fim) {
+          if (t.data_fim.includes('-')) {
+            const [year, month, day] = t.data_fim.split('-');
+            endDateStr = `${day}/${month}`;
+          } else {
+            endDateStr = t.data_fim.substring(0, 5);
+          }
+        }
         doc.text(`${endDateStr} ${t.hora_fim || ''}`, 40, y + 5.5);
         
         doc.text(setor.substring(0, 25), 70, y + 5.5);

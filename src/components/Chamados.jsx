@@ -2,14 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Pencil, Trash2, ClipboardList, LayoutList, KanbanSquare, MessageSquare, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteTicket, onUpdateTicketStatus }) {
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
-  const [filter, setFilter] = useState('not_resolved');
-  const [catFilter, setCatFilter] = useState('all');
-  const [prioFilter, setPrioFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
-  const [sectorFilter, setSectorFilter] = useState('');
+export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTicket, onEditTicket, onDeleteTicket, onUpdateTicketStatus }) {
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('verdeit_chamados_view') || 'list'); // 'list' or 'kanban'
+  
+  // Load saved filters
+  const savedFilters = JSON.parse(localStorage.getItem('verdeit_chamados_filters') || '{}');
+  const [filter, setFilter] = useState(savedFilters.filter || 'not_resolved');
+  const [catFilter, setCatFilter] = useState(savedFilters.catFilter || 'all');
+  const [prioFilter, setPrioFilter] = useState(savedFilters.prioFilter || 'all');
+  const [dateFilter, setDateFilter] = useState(savedFilters.dateFilter || '');
+  const [sectorFilter, setSectorFilter] = useState(savedFilters.sectorFilter || '');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Save filters whenever they change
+  useEffect(() => {
+    localStorage.setItem('verdeit_chamados_filters', JSON.stringify({
+      filter, catFilter, prioFilter, dateFilter, sectorFilter
+    }));
+  }, [filter, catFilter, prioFilter, dateFilter, sectorFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('verdeit_chamados_view', viewMode);
+  }, [viewMode]);
 
   const [dragOverCol, setDragOverCol] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
@@ -108,6 +122,15 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
     setDragOverCol(null);
   };
 
+  const formatDataFim = (dataFim) => {
+    if (!dataFim) return '';
+    if (dataFim.includes('-')) {
+      const [year, month, day] = dataFim.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    return dataFim;
+  };
+
   const renderTicketCard = (t, isKanban = false) => (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -177,10 +200,10 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
       </div>
       <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
         <div className="flex flex-col">
-          <span className="font-mono text-[0.65rem] text-text-muted">{t.dateDisplay} {t.hora}</span>
+          <span className="font-mono text-[0.65rem] text-text-muted">{t.date_display} {t.hora}</span>
           {t.data_fim && !isKanban && (
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="font-mono text-[0.65rem] text-green">Fim: {t.data_fim} {t.hora_fim}</span>
+              <span className="font-mono text-[0.65rem] text-green">Fim: {formatDataFim(t.data_fim)} {t.hora_fim}</span>
               {getSLA(t) && (
                 <span className="text-[0.6rem] bg-green/10 text-green px-1.5 py-0.5 rounded font-bold">
                   SLA: {getSLA(t)}
@@ -328,6 +351,17 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
                   <ChevronRight size={16} />
                 </button>
               </div>
+            </div>
+          )}
+
+          {hasMoreTickets && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={onLoadMore}
+                className="px-6 py-2 bg-surface2 border border-border rounded-full text-[0.8rem] font-medium text-text-muted hover:text-text hover:border-green/50 transition-all"
+              >
+                Carregar mais chamados antigos...
+              </button>
             </div>
           )}
         </div>
