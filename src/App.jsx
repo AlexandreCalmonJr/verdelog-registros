@@ -101,24 +101,23 @@ export default function App() {
       return;
     }
     
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUser(session.user);
-        await loadUserData(session.user);
+        loadUserData(session.user);
       } else {
         setLoading(false);
       }
-    };
-    
-    checkSession();
+    });
     
     const { data: { subscription } } = supabase.auth.onAuthStateChanged(async (event, session) => {
-      if (session) {
-        const u = session.user;
-        setUser(u);
-        await loadUserData(u);
-      } else {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (session) {
+          setUser(session.user);
+          await loadUserData(session.user);
+        }
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setLogs([]);
@@ -130,6 +129,28 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Realtime Updates Listener
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public' },
+        (payload) => {
+          // Prevent infinite loops by not reloading if we just made the change locally
+          // but for a simple app, reloading on any change keeps everything synced
+          loadUserData(user);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const loadUserData = async (authUser) => {
     if (!authUser) return;

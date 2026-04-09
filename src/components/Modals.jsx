@@ -68,11 +68,20 @@ export function TicketModal({
   equipment = []
 }) {
   const [formData, setFormData] = React.useState({
-    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', date: '', hora: '', notes: []
+    ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', date: '', hora: '', notes: [], ticket_type: 'incident'
   });
   const [newNote, setNewNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+
+  // Quick Response Templates
+  const quickResponses = [
+    { label: 'Senha Resetada', text: 'Senha do usuário resetada no AD/Sistema. Usuário conseguiu logar com sucesso.' },
+    { label: 'Cabo Substituído', text: 'Cabo de rede danificado substituído. Conectividade restabelecida.' },
+    { label: 'Limpeza de Spooler', text: 'Fila de impressão travada. Realizada limpeza do spooler e reinício do serviço. Impressões voltaram ao normal.' },
+    { label: 'Equipamento Entregue', text: 'Equipamento solicitado foi configurado e entregue ao usuário.' },
+    { label: 'Atualização Concluída', text: 'Atualização de software realizada com sucesso.' }
+  ];
 
   React.useEffect(() => {
     if (ticket) setFormData({ 
@@ -85,13 +94,15 @@ export function TicketModal({
       photo_url: ticket.photo_url || '',
       date: ticket.date || '',
       hora: ticket.hora || '',
-      notes: ticket.notes || []
+      notes: ticket.notes || [],
+      ticket_type: ticket.ticket_type || 'incident'
     });
     else setFormData({ 
       ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', 
       date: new Date().toISOString().split('T')[0], 
       hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), 
-      notes: [] 
+      notes: [],
+      ticket_type: 'incident'
     });
     setSaving(false);
     setUploading(false);
@@ -151,9 +162,23 @@ export function TicketModal({
               value={formData.ref}
               onChange={(e) => setFormData({ ...formData, ref: e.target.value })}
               className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-              placeholder="INC-2025-001"
+              placeholder="Ex: INC-001"
             />
           </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Tipo de Chamado</label>
+            <select 
+              value={formData.ticket_type}
+              onChange={(e) => setFormData({ ...formData, ticket_type: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="incident">Incidente (Falha/Erro)</option>
+              <option value="request">Requisição (Pedido/Serviço)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Status</label>
             <select 
@@ -166,6 +191,19 @@ export function TicketModal({
               <option value="pending">Pendente (Aguardando)</option>
               <option value="escalated">Escalado</option>
               <option value="resolved">Resolvido (Concluído)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Prioridade</label>
+            <select 
+              value={formData.priority || 'medium'}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+              <option value="critical">Crítica</option>
             </select>
           </div>
         </div>
@@ -251,22 +289,6 @@ export function TicketModal({
               <option value="other">Outros</option>
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Prioridade</label>
-            <select 
-              value={formData.priority || 'medium'}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-              className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-            >
-              <option value="low">Baixa</option>
-              <option value="medium">Média</option>
-              <option value="high">Alta</option>
-              <option value="critical">Crítica</option>
-            </select>
-          </div>
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
             <select 
@@ -324,7 +346,24 @@ export function TicketModal({
             animate={{ opacity: 1, y: 0 }}
             className="bg-green/5 border border-green/20 rounded-xl p-4"
           >
-            <label className="block text-[0.75rem] font-bold text-green uppercase tracking-[0.06em] mb-1.5">Solução Aplicada *</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-[0.75rem] font-bold text-green uppercase tracking-[0.06em]">Solução Aplicada *</label>
+            </div>
+            
+            {/* Respostas Rápidas */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {quickResponses.map((qr, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, solution: qr.text })}
+                  className="text-[0.7rem] font-medium bg-green/10 text-green hover:bg-green hover:text-bg border border-green/20 px-2 py-1 rounded-md transition-all"
+                >
+                  {qr.label}
+                </button>
+              ))}
+            </div>
+
             <textarea 
               value={formData.solution}
               onChange={(e) => setFormData({ ...formData, solution: e.target.value })}

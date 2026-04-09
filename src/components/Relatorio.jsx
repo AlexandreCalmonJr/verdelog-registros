@@ -48,7 +48,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     }
 
     if (includeTickets) {
-      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Resolução,Status\n`;
+      csv += `CHAMADOS\nTipo,Data Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Resolução,Status\n`;
       filteredTickets.forEach(t => {
         let sla = '';
         if (t.created_at && t.resolved_at) {
@@ -62,13 +62,14 @@ export default function Relatorio({ logs, tickets, profile }) {
         const prioMap = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
         const statusMap = { 'open': 'Aberto', 'in_progress': 'Em Andamento', 'pending': 'Pendente', 'resolved': 'Resolvido', 'escalated': 'Escalado' };
         
+        const typeStr = t.ticket_type === 'request' ? 'Requisição' : 'Incidente';
         const cat = catMap[t.category] || t.category || '';
         const prio = prioMap[t.priority] || t.priority || '';
         const stat = statusMap[t.status] || t.status || '';
         const desc = (t.description || '').replace(/"/g, '""');
         const sol = (t.solution || '').replace(/"/g, '""');
 
-        csv += `"${t.dateDisplay || ''}","${t.hora || ''}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref || ''}","${t.cliente || ''}","${t.requester || ''}","${cat}","${prio}","${desc}","${sol}","${stat}"\n`;
+        csv += `"${typeStr}","${t.dateDisplay || ''}","${t.hora || ''}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref || ''}","${t.cliente || ''}","${t.requester || ''}","${cat}","${prio}","${desc}","${sol}","${stat}"\n`;
       });
     }
 

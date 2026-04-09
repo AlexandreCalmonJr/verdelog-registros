@@ -126,6 +126,9 @@ export default function Chamados({ tickets, onNewTicket, onEditTicket, onDeleteT
       <div className="flex items-start justify-between mb-2">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${t.ticket_type === 'request' ? 'bg-blue/10 text-blue border border-blue/20' : 'bg-red/10 text-red border border-red/20'}`}>
+              {t.ticket_type === 'request' ? 'REQ' : 'INC'}
+            </span>
             <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
             {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
             {t.requester && <span className="text-[0.72rem] text-text-muted">({t.requester})</span>}
