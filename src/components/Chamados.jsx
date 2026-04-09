@@ -59,6 +59,31 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
     return `${diffHrs}h ${diffMins}m`;
   };
 
+  const getSLAStatus = (t) => {
+    if (t.status === 'resolved' || !t.created_at) return null;
+    
+    // Define SLA limits in hours based on priority
+    const slaLimits = {
+      critical: 4,
+      high: 8,
+      medium: 24,
+      low: 48
+    };
+    
+    const limitHrs = slaLimits[t.priority] || 24;
+    const start = new Date(t.created_at);
+    const now = new Date();
+    const diffMs = now - start;
+    const diffHrs = diffMs / (1000 * 60 * 60);
+    
+    if (diffHrs > limitHrs) {
+      return { status: 'breached', label: 'SLA Estourado', cls: 'bg-red/10 text-red border border-red/20' };
+    } else if (diffHrs > limitHrs * 0.75) {
+      return { status: 'warning', label: 'SLA em Risco', cls: 'bg-amber/10 text-amber border border-amber/20' };
+    }
+    return null;
+  };
+
   const statusMap = {
     open: { cls: 'bg-[rgba(255,179,71,0.12)] text-amber border-[rgba(255,179,71,0.2)]', label: 'Aberto' },
     in_progress: { cls: 'bg-[rgba(91,196,255,0.12)] text-blue border-[rgba(91,196,255,0.2)]', label: 'Em Andamento' },
@@ -131,7 +156,10 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
     return dataFim;
   };
 
-  const renderTicketCard = (t, isKanban = false) => (
+  const renderTicketCard = (t, isKanban = false) => {
+    const slaAlert = getSLAStatus(t);
+    
+    return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -139,7 +167,7 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
       key={t.id} 
       draggable={isKanban}
       onDragStart={(e) => isKanban && handleDragStart(e, t.id)}
-      className={`relative bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'} ${updatingId === t.id ? 'opacity-50 pointer-events-none' : ''}`}
+      className={`relative bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'} ${updatingId === t.id ? 'opacity-50 pointer-events-none' : ''} ${slaAlert && slaAlert.status === 'breached' ? 'shadow-[0_0_10px_rgba(255,77,109,0.15)] border-red/30' : ''}`}
     >
       {updatingId === t.id && (
         <div className="absolute inset-0 bg-surface/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10">
@@ -158,6 +186,11 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
             {t.category && (
               <span className="text-[0.6rem] bg-surface2 border border-border px-1.5 py-0.5 rounded text-text-muted uppercase font-bold">
                 {categoryMap[t.category] || t.category}
+              </span>
+            )}
+            {slaAlert && (
+              <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${slaAlert.cls}`}>
+                {slaAlert.label}
               </span>
             )}
           </div>
@@ -228,7 +261,8 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
         </div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">

@@ -504,6 +504,7 @@ export default function App() {
         onSave={saveTicket}
         ticket={selectedTicket}
         equipment={equipment}
+        profile={profile}
       />
       <ProfileModal 
         isOpen={modals.profile}

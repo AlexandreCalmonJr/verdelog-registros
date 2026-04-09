@@ -65,7 +65,8 @@ export function TicketModal({
   onClose,
   onSave,
   ticket,
-  equipment = []
+  equipment = [],
+  profile
 }) {
   const [formData, setFormData] = React.useState({
     ref: '', cliente: '', description: '', status: 'open', equipment_id: '', solution: '', category: 'desktop', priority: 'medium', requester: '', photo_url: '', date: '', hora: '', notes: [], ticket_type: 'incident'
@@ -115,7 +116,8 @@ export function TicketModal({
     const note = {
       id: Date.now().toString(),
       text: newNote.trim(),
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      user_name: profile?.name || 'Técnico'
     };
     setFormData({
       ...formData,
@@ -383,6 +385,7 @@ export function TicketModal({
               formData.notes.map(note => (
                 <div key={note.id} className="bg-surface2 border border-border rounded-lg p-3">
                   <div className="flex justify-between items-center mb-1">
+                    <span className="text-[0.7rem] font-bold text-text-dim">{note.user_name || 'Técnico'}</span>
                     <span className="text-[0.65rem] text-text-muted font-mono">
                       {new Date(note.created_at).toLocaleString('pt-BR')}
                     </span>
