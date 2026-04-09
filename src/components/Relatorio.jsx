@@ -48,7 +48,7 @@ export default function Relatorio({ logs, tickets, profile }) {
     }
 
     if (includeTickets) {
-      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Status\n`;
+      csv += `CHAMADOS\nData Início,Hora Início,Data Fim,Hora Fim,SLA,Ref,Setor/Órgão,Solicitante,Categoria,Prioridade,Descrição,Resolução,Status\n`;
       filteredTickets.forEach(t => {
         let sla = '';
         if (t.created_at && t.resolved_at) {
@@ -65,8 +65,10 @@ export default function Relatorio({ logs, tickets, profile }) {
         const cat = catMap[t.category] || t.category || '';
         const prio = prioMap[t.priority] || t.priority || '';
         const stat = statusMap[t.status] || t.status || '';
+        const desc = (t.description || '').replace(/"/g, '""');
+        const sol = (t.solution || '').replace(/"/g, '""');
 
-        csv += `"${t.dateDisplay}","${t.hora}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref}","${t.cliente}","${t.requester || ''}","${cat}","${prio}","${t.description.replace(/"/g, '""')}","${stat}"\n`;
+        csv += `"${t.dateDisplay || ''}","${t.hora || ''}","${t.data_fim || ''}","${t.hora_fim || ''}","${sla}","${t.ref || ''}","${t.cliente || ''}","${t.requester || ''}","${cat}","${prio}","${desc}","${sol}","${stat}"\n`;
       });
     }
 
@@ -167,15 +169,22 @@ export default function Relatorio({ logs, tickets, profile }) {
       doc.setTextColor(...black);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      ['INÍCIO', 'FIM', 'REF', 'STATUS', 'CAT / PRIOR', 'DESCRIÇÃO'].forEach((h, i) => doc.text(h, [14, 34, 54, 74, 96, 130][i], y + 5.5));
+      ['INÍCIO', 'FIM', 'SETOR/ÓRGÃO', 'SOLICITANTE', 'CATEGORIA'].forEach((h, i) => doc.text(h, [14, 40, 70, 115, 160][i], y + 5.5));
       y += 8;
 
       filteredTickets.forEach((t, i) => {
-        // Calculate row height based on content
-        const requesterInfo = t.requester ? `[${t.requester}] ` : '';
-        const desc = (requesterInfo + t.description).length > 55 ? (requesterInfo + t.description).substring(0, 55) + '…' : (requesterInfo + t.description);
+        const catMap = { 'hardware': 'Hardware', 'software': 'Software', 'network': 'Rede', 'printer': 'Impressora', 'other': 'Outros' };
+        const cat = catMap[t.category] || t.category || '—';
+        const setor = t.cliente || '—';
+        const solicitante = t.requester || '—';
+        const desc = t.description || '—';
+        const solucao = t.solution || '—';
+
+        // Calculate lines for description and resolution
+        const descLines = doc.splitTextToSize(`Descrição: ${desc}`, 180);
+        const solLines = doc.splitTextToSize(`Resolução: ${solucao}`, 180);
         
-        const rowHeight = 9;
+        const rowHeight = 8 + (descLines.length * 4) + (solLines.length * 4) + 4;
         
         if (y + rowHeight > 275) { doc.addPage(); y = 20; }
         
@@ -191,25 +200,15 @@ export default function Relatorio({ logs, tickets, profile }) {
         doc.text(`${dateStr} ${t.hora || ''}`, 14, y + 5.5);
         
         const endDateStr = t.data_fim ? t.data_fim.substring(0, 5) : '';
-        doc.text(`${endDateStr} ${t.hora_fim || ''}`, 34, y + 5.5);
+        doc.text(`${endDateStr} ${t.hora_fim || ''}`, 40, y + 5.5);
         
-        doc.text(t.ref || '—', 54, y + 5.5);
+        doc.text(setor.substring(0, 25), 70, y + 5.5);
+        doc.text(solicitante.substring(0, 25), 115, y + 5.5);
+        doc.text(cat, 160, y + 5.5);
         
-        const statusMap = { 'open': 'Aberto', 'in_progress': 'Em Andamento', 'pending': 'Pendente', 'resolved': 'Resolvido', 'escalated': 'Escalado' };
-        const statusLabel = statusMap[t.status] || t.status;
-        
-        doc.setFont('helvetica', t.status === 'resolved' ? 'bold' : 'normal');
-        doc.text(statusLabel, 74, y + 5.5);
-
-        const catMap = { 'hardware': 'Hardware', 'software': 'Software', 'network': 'Rede', 'printer': 'Impressora', 'other': 'Outros' };
-        const prioMap = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
-        
-        doc.setFont('helvetica', 'normal');
         doc.setTextColor(...darkGray);
-        doc.text(`${catMap[t.category] || t.category || '—'} / ${prioMap[t.priority] || t.priority || '—'}`, 96, y + 5.5);
-        
-        doc.setTextColor(...black);
-        doc.text(desc, 130, y + 5.5);
+        doc.text(descLines, 14, y + 11);
+        doc.text(solLines, 14, y + 11 + (descLines.length * 4));
         
         y += rowHeight;
       });

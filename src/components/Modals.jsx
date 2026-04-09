@@ -270,13 +270,13 @@ export function TicketModal({
           <div>
             <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Equipamento (Opcional)</label>
             <select 
-              value={formData.equipment_id}
+              value={formData.equipment_id || ''}
               onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
               className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
             >
               <option value="">Nenhum vinculado</option>
               {equipment.map(eq => (
-                <option key={eq.id} value={eq.id}>{eq.name} ({eq.patrimony})</option>
+                <option key={eq.id} value={eq.id}>{eq.name} {eq.patrimony_number ? `(${eq.patrimony_number})` : ''}</option>
               ))}
             </select>
           </div>
