@@ -414,6 +414,7 @@ export default function App() {
           assignedEquipment={assignedEquipment}
           enabledModules={enabledModules}
           profile={profile}
+          tickets={tickets}
         />
       )}
 

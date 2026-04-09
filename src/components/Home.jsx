@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Clock, 
   Monitor, 
@@ -8,10 +8,15 @@ import {
   Package, 
   ArrowRightLeft, 
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  TrendingUp
 } from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 
-export default function Home({ user, onNavigate, stats, assignedEquipment, enabledModules, profile }) {
+export default function Home({ user, onNavigate, stats, assignedEquipment, enabledModules, profile, tickets = [] }) {
   const allMenuItems = [
     {
       id: 'ponto',
@@ -73,6 +78,63 @@ export default function Home({ user, onNavigate, stats, assignedEquipment, enabl
     if (item.roles && !item.roles.includes(profile?.role)) return false;
     return true;
   });
+
+  // Chart Data Preparation
+  const { pieData, barData } = useMemo(() => {
+    const categoryMap = {
+      desktop: 'Desktop',
+      notebook: 'Notebook',
+      mobile: 'Mobile',
+      peripherals: 'Periféricos',
+      printer: 'Impressora',
+      network: 'Rede',
+      software: 'Software',
+      other: 'Outros'
+    };
+
+    const ticketsByCategory = tickets.reduce((acc, ticket) => {
+      const cat = categoryMap[ticket.category] || 'Outros';
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {});
+
+    const pie = Object.entries(ticketsByCategory)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    const bar = last7Days.map(date => {
+      const opened = tickets.filter(t => t.date === date).length;
+      let resolved = 0;
+      tickets.forEach(t => {
+        if (t.status === 'resolved' && t.data_fim) {
+          // data_fim might be DD/MM/YYYY or YYYY-MM-DD
+          let tDate = t.data_fim;
+          if (tDate.includes('/')) {
+            const [d, m, y] = tDate.split('/');
+            tDate = `${y}-${m}-${d}`;
+          }
+          if (tDate === date) resolved++;
+        }
+      });
+      
+      const [year, month, day] = date.split('-');
+      return {
+        name: `${day}/${month}`,
+        Abertos: opened,
+        Resolvidos: resolved
+      };
+    });
+
+    return { pieData: pie, barData: bar };
+  }, [tickets]);
+
+  const COLORS = ['#00C896', '#5BC4FF', '#FFB347', '#FF4D6D', '#A855F7', '#EAB308', '#64748B', '#F43F5E'];
 
   return (
     <div className="space-y-8 pb-20">
@@ -159,6 +221,76 @@ export default function Home({ user, onNavigate, stats, assignedEquipment, enabl
           <div className="space-y-1">
             <div className="text-[0.65rem] font-bold text-text-muted uppercase">Pessoas em Turno</div>
             <div className="text-2xl font-bold text-green">{stats?.activeShifts || 0}</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Charts Section */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart */}
+        <div className="bg-surface border border-border rounded-3xl p-6">
+          <div className="flex items-center gap-2 mb-6 text-text-dim">
+            <TrendingUp size={18} />
+            <h2 className="text-sm font-bold uppercase tracking-widest">Chamados (Últimos 7 Dias)</h2>
+          </div>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <Bar dataKey="Abertos" fill="#FFB347" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="Resolvidos" fill="#00C896" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Pie Chart */}
+        <div className="bg-surface border border-border rounded-3xl p-6">
+          <div className="flex items-center gap-2 mb-6 text-text-dim">
+            <BarChart3 size={18} />
+            <h2 className="text-sm font-bold uppercase tracking-widest">Chamados por Categoria</h2>
+          </div>
+          <div className="h-[250px] w-full flex items-center justify-center">
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend 
+                    layout="vertical" 
+                    verticalAlign="middle" 
+                    align="right"
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: '11px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-sm text-text-muted">Nenhum dado disponível.</div>
+            )}
           </div>
         </div>
       </section>
