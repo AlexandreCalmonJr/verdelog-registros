@@ -144,6 +144,36 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
 
     try {
       await supabaseService.upsertEquipment(equip);
+      
+      // Automatic Movement Logging
+      if (editingItem) {
+        let movementDescription = [];
+        if (editingItem.sector_id !== equip.sector_id) {
+          const oldSector = sectors.find(s => s.id === editingItem.sector_id)?.name || 'Nenhum';
+          const newSector = sectors.find(s => s.id === equip.sector_id)?.name || 'Nenhum';
+          movementDescription.push(`Setor alterado de "${oldSector}" para "${newSector}"`);
+        }
+        if (editingItem.assigned_user_name !== equip.assigned_user_name) {
+          const oldUser = editingItem.assigned_user_name || 'Nenhum';
+          const newUser = equip.assigned_user_name || 'Nenhum';
+          movementDescription.push(`Usuário alterado de "${oldUser}" para "${newUser}"`);
+        }
+        if (editingItem.status !== equip.status) {
+          const statusMap = { active: 'Ativo', maintenance: 'Manutenção', retired: 'Retirado' };
+          movementDescription.push(`Status alterado de "${statusMap[editingItem.status]}" para "${statusMap[equip.status]}"`);
+        }
+
+        if (movementDescription.length > 0) {
+          await supabaseService.createMaintenanceLog({
+            equipment_id: equip.id,
+            user_id: user.id,
+            description: `Movimentação Automática: ${movementDescription.join(' | ')}`,
+            cost: 0,
+            date: new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+
       setShowEquipModal(false);
       setEditingItem(null);
       fetchData();
@@ -190,11 +220,23 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
       'maintenance': 'retired',
       'retired': 'active'
     };
+    const newStatus = nextStatus[equip.status] || 'active';
     try {
       await supabaseService.upsertEquipment({
         ...equip,
-        status: nextStatus[equip.status] || 'active'
+        status: newStatus
       });
+
+      // Log the status change
+      const statusMap = { active: 'Ativo', maintenance: 'Manutenção', retired: 'Retirado' };
+      await supabaseService.createMaintenanceLog({
+        equipment_id: equip.id,
+        user_id: user.id,
+        description: `Movimentação Automática: Status alterado de "${statusMap[equip.status]}" para "${statusMap[newStatus]}"`,
+        cost: 0,
+        date: new Date().toISOString().split('T')[0]
+      });
+
       fetchData();
     } catch (error) {
       alert('Erro ao alterar status');

@@ -22,6 +22,7 @@ export default function Logistics({ user, profile }) {
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti' || profile?.role === 'tecnico_ti') {
@@ -90,10 +91,26 @@ export default function Logistics({ user, profile }) {
     }
   };
 
-  const filteredSupplies = supplies.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleQuickStockChange = async (supply, change) => {
+    const newQuantity = supply.quantity + change;
+    if (newQuantity < 0) return; // Prevent negative stock
+    
+    try {
+      await supabaseService.upsertSupply({
+        ...supply,
+        quantity: newQuantity
+      });
+      fetchData();
+    } catch (error) {
+      alert('Erro ao atualizar estoque');
+    }
+  };
+
+  const filteredSupplies = supplies.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || s.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) return <div className="p-8 text-center text-text-muted">Carregando logística...</div>;
 
@@ -112,23 +129,49 @@ export default function Logistics({ user, profile }) {
             onClick={() => setActiveTab('movements')}
             className={`px-4 py-1.5 rounded-lg text-[0.85rem] font-medium transition-all ${activeTab === 'movements' ? 'bg-green text-bg shadow-lg' : 'text-text-muted hover:text-text'}`}
           >
-            Movimentações
+            Mov. de Equipamentos
           </button>
         </div>
       </div>
 
       {activeTab === 'stock' ? (
         <div className="space-y-4">
+          {supplies.filter(s => s.quantity <= s.min_quantity).length > 0 && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3">
+              <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+              <div>
+                <h3 className="text-red-500 font-bold text-sm mb-1">Atenção: Itens com Estoque Baixo</h3>
+                <p className="text-[0.8rem] text-red-500/80">
+                  Você tem {supplies.filter(s => s.quantity <= s.min_quantity).length} insumo(s) abaixo da quantidade mínima. Considere realizar um pedido de reposição.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-            <div className="relative w-full md:w-64">
-              <input 
-                type="text"
-                placeholder="Pesquisar insumo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-surface2 border border-border rounded-lg pl-10 pr-4 py-2 text-sm outline-none focus:border-green"
-              />
-              <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
+            <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                <input 
+                  type="text"
+                  placeholder="Pesquisar insumo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-surface2 border border-border rounded-lg pl-10 pr-4 py-2 text-sm outline-none focus:border-green"
+                />
+                <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
+              </div>
+              <select 
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-green w-full md:w-48"
+              >
+                <option value="all">Todas as Categorias</option>
+                <option value="Periféricos">Periféricos</option>
+                <option value="Cabos">Cabos</option>
+                <option value="Componentes">Componentes</option>
+                <option value="Suprimentos">Suprimentos</option>
+                <option value="Outros">Outros</option>
+              </select>
             </div>
             <button 
               onClick={() => { setEditingItem(null); setShowSupplyModal(true); }}
@@ -155,6 +198,20 @@ export default function Logistics({ user, profile }) {
                   <h4 className="font-bold text-sm mb-1">{supply.name}</h4>
                   <p className="text-[0.7rem] text-text-muted mb-3 uppercase tracking-wider">{supply.category} · {supply.location || 'Sem local'}</p>
                   
+                  {/* Stock Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-[0.6rem] text-text-muted mb-1 font-bold uppercase">
+                      <span>Nível de Estoque</span>
+                      <span>Min: {supply.min_quantity}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-surface2 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${supply.quantity <= supply.min_quantity ? 'bg-red-500' : supply.quantity <= supply.min_quantity * 1.5 ? 'bg-yellow-500' : 'bg-green'}`}
+                        style={{ width: `${Math.min(100, (supply.quantity / (supply.min_quantity * 3 || 1)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex items-end justify-between">
                     <div className="space-y-1">
                       <div className="text-[0.6rem] text-text-muted uppercase font-bold">Quantidade</div>
@@ -162,9 +219,28 @@ export default function Logistics({ user, profile }) {
                         {supply.quantity} <span className="text-xs font-normal text-text-muted">{supply.unit}</span>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => { setEditingItem(supply); setShowSupplyModal(true); }} className="p-2 text-text-muted hover:text-green hover:bg-surface2 rounded-lg transition-all"><Edit2 size={14} /></button>
-                      <button onClick={() => handleDeleteSupply(supply.id)} className="p-2 text-text-muted hover:text-red-500 hover:bg-surface2 rounded-lg transition-all"><Trash2 size={14} /></button>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center gap-1 bg-surface2 rounded-lg p-1 border border-border">
+                        <button 
+                          onClick={() => handleQuickStockChange(supply, -1)}
+                          disabled={supply.quantity <= 0}
+                          className="w-6 h-6 flex items-center justify-center rounded bg-surface border border-border text-text-muted hover:text-red-500 hover:border-red-500/30 transition-all disabled:opacity-50"
+                          title="Retirar 1"
+                        >
+                          -
+                        </button>
+                        <button 
+                          onClick={() => handleQuickStockChange(supply, 1)}
+                          className="w-6 h-6 flex items-center justify-center rounded bg-surface border border-border text-text-muted hover:text-green hover:border-green/30 transition-all"
+                          title="Adicionar 1"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => { setEditingItem(supply); setShowSupplyModal(true); }} className="p-2 text-text-muted hover:text-green hover:bg-surface2 rounded-lg transition-all" title="Editar"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDeleteSupply(supply.id)} className="p-2 text-text-muted hover:text-red-500 hover:bg-surface2 rounded-lg transition-all" title="Excluir"><Trash2 size={14} /></button>
+                      </div>
                     </div>
                   </div>
                 </div>
