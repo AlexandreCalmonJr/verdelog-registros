@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { formatHours, formatMonthLabel, maskCPF } from '../lib/utils';
-import { FileDown, Table, FileText, ShieldAlert } from 'lucide-react';
+import { FileDown, Table, FileText, ShieldAlert, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 
 export default function Relatorio({ logs, tickets, profile }) {
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'export'
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
   const [includeLogs, setIncludeLogs] = useState(true);
   const [includeTickets, setIncludeTickets] = useState(true);
@@ -33,6 +38,49 @@ export default function Relatorio({ logs, tickets, profile }) {
     return true;
   });
   const totalH = filteredLogs.reduce((s, l) => s + l.total_horas, 0);
+
+  // BI Data Preparation
+  const { pieCategory, pieStatus, barPriority, avgSlaHours } = useMemo(() => {
+    const catMap = { 'hardware': 'Hardware', 'software': 'Software', 'network': 'Rede', 'printer': 'Impressora', 'other': 'Outros' };
+    const prioMap = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    const statusMap = { 'open': 'Aberto', 'in_progress': 'Em Andamento', 'pending': 'Pendente', 'resolved': 'Resolvido', 'escalated': 'Escalado' };
+
+    const catCount = {};
+    const statusCount = {};
+    const prioCount = {};
+    let totalSlaMs = 0;
+    let resolvedCount = 0;
+
+    // Use all tickets for the selected month to build charts, regardless of the export filter
+    const monthTickets = tickets.filter(t => t.date?.startsWith(selectedMonth));
+
+    monthTickets.forEach(t => {
+      const cat = catMap[t.category] || t.category || 'Outros';
+      catCount[cat] = (catCount[cat] || 0) + 1;
+
+      const stat = statusMap[t.status] || t.status || 'Outros';
+      statusCount[stat] = (statusCount[stat] || 0) + 1;
+
+      const prio = prioMap[t.priority] || t.priority || 'Outros';
+      prioCount[prio] = (prioCount[prio] || 0) + 1;
+
+      if (t.status === 'resolved' && t.created_at && t.resolved_at) {
+        const diffMs = new Date(t.resolved_at) - new Date(t.created_at);
+        totalSlaMs += diffMs;
+        resolvedCount++;
+      }
+    });
+
+    const pieCategory = Object.entries(catCount).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const pieStatus = Object.entries(statusCount).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const barPriority = Object.entries(prioCount).map(([name, Quantidade]) => ({ name, Quantidade })).sort((a, b) => b.Quantidade - a.Quantidade);
+    
+    const avgSlaHours = resolvedCount > 0 ? (totalSlaMs / resolvedCount) / (1000 * 60 * 60) : 0;
+
+    return { pieCategory, pieStatus, barPriority, avgSlaHours };
+  }, [tickets, selectedMonth]);
+
+  const COLORS = ['#00C896', '#5BC4FF', '#FFB347', '#FF4D6D', '#A855F7', '#EAB308'];
 
   const exportCSV = () => {
     if (!includeLogs && !includeTickets) return;
@@ -241,105 +289,244 @@ export default function Relatorio({ logs, tickets, profile }) {
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="font-display font-bold text-[1.05rem]">Gerar Relatório</h2>
-      
-      <div className="bg-surface border border-border2 rounded-2xl p-5 shadow-[0_0_30px_rgba(0,200,150,0.07)]">
-        <p className="text-[0.78rem] text-text-muted mb-4">Selecione o mês e exporte para comprovação junto ao órgão.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h2 className="text-xl font-display font-bold">Relatórios e BI</h2>
         
-        <div className="mb-5">
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Mês</label>
-          <select 
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full bg-surface2 border border-border rounded-lg p-3 text-text font-sans text-[0.9rem] outline-none focus:border-green transition-all"
-          >
-            {months.map(m => (
-              <option key={m} value={m}>{formatMonthLabel(m)}</option>
-            ))}
-          </select>
-        </div>
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          <div className="flex items-center gap-2 bg-surface border border-border p-1.5 rounded-xl">
+            <label className="text-[0.7rem] font-bold text-text-muted uppercase pl-2">Mês:</label>
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-surface2 border-none rounded-lg px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-green cursor-pointer"
+            >
+              {months.map(m => (
+                <option key={m} value={m}>{formatMonthLabel(m)}</option>
+              ))}
+            </select>
+          </div>
 
-        <div className="space-y-3 mb-6">
-          <label className="block text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-1.5">Conteúdo do Relatório</label>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-3 p-3 bg-surface2 border border-border rounded-xl cursor-pointer hover:border-green/30 transition-all">
-              <input 
-                type="checkbox" 
-                checked={includeLogs} 
-                onChange={(e) => setIncludeLogs(e.target.checked)}
-                className="w-4 h-4 accent-green"
-              />
-              <span className="text-[0.85rem] font-medium text-text">Registros de Ponto</span>
-            </label>
-            <div className="flex flex-col gap-2 p-3 bg-surface2 border border-border rounded-xl transition-all">
-              <label className="flex items-center gap-3 cursor-pointer">
+          <div className="flex bg-surface2 p-1 rounded-xl border border-border">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-4 py-1.5 rounded-lg text-[0.85rem] font-medium transition-all flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-green text-bg shadow-lg' : 'text-text-muted hover:text-text'}`}
+            >
+              <BarChart3 size={16} /> Dashboard BI
+            </button>
+            <button 
+              onClick={() => setActiveTab('export')}
+              className={`px-4 py-1.5 rounded-lg text-[0.85rem] font-medium transition-all flex items-center gap-2 ${activeTab === 'export' ? 'bg-green text-bg shadow-lg' : 'text-text-muted hover:text-text'}`}
+            >
+              <FileDown size={16} /> Exportar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {activeTab === 'dashboard' ? (
+        <div className="space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-surface border border-border p-5 rounded-3xl relative overflow-hidden group">
+              <div className="text-[0.65rem] font-bold text-text-muted uppercase mb-1">Horas Trabalhadas</div>
+              <div className="text-3xl font-bold text-blue-500">{formatHours(totalH)}</div>
+              <div className="text-[0.7rem] text-text-dim mt-1">{filteredLogs.length} dias registrados</div>
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <PieChartIcon size={80} />
+              </div>
+            </div>
+            <div className="bg-surface border border-border p-5 rounded-3xl relative overflow-hidden group">
+              <div className="text-[0.65rem] font-bold text-text-muted uppercase mb-1">Chamados no Mês</div>
+              <div className="text-3xl font-bold text-purple-500">{tickets.filter(t => t.date?.startsWith(selectedMonth)).length}</div>
+              <div className="text-[0.7rem] text-text-dim mt-1">Total de tickets criados</div>
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <BarChart3 size={80} />
+              </div>
+            </div>
+            <div className="bg-surface border border-border p-5 rounded-3xl relative overflow-hidden group">
+              <div className="text-[0.65rem] font-bold text-text-muted uppercase mb-1">Taxa de Resolução</div>
+              <div className="text-3xl font-bold text-green">
+                {tickets.filter(t => t.date?.startsWith(selectedMonth)).length > 0 
+                  ? Math.round((tickets.filter(t => t.date?.startsWith(selectedMonth) && t.status === 'resolved').length / tickets.filter(t => t.date?.startsWith(selectedMonth)).length) * 100) 
+                  : 0}%
+              </div>
+              <div className="text-[0.7rem] text-text-dim mt-1">Tickets finalizados</div>
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <PieChartIcon size={80} />
+              </div>
+            </div>
+            <div className="bg-surface border border-border p-5 rounded-3xl relative overflow-hidden group">
+              <div className="text-[0.65rem] font-bold text-text-muted uppercase mb-1">Tempo Médio (SLA)</div>
+              <div className="text-3xl font-bold text-orange-500">
+                {avgSlaHours > 0 ? `${Math.floor(avgSlaHours)}h ${Math.round((avgSlaHours % 1) * 60)}m` : '—'}
+              </div>
+              <div className="text-[0.7rem] text-text-dim mt-1">Para resolução</div>
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <BarChart3 size={80} />
+              </div>
+            </div>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-surface border border-border rounded-3xl p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Categoria</h3>
+              <div className="h-[250px] w-full">
+                {pieCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieCategory} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                        {pieCategory.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                      <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <div className="flex items-center justify-center h-full text-text-muted text-sm">Sem dados neste mês</div>}
+              </div>
+            </div>
+
+            <div className="bg-surface border border-border rounded-3xl p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Status</h3>
+              <div className="h-[250px] w-full">
+                {pieStatus.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                        {pieStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                      <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <div className="flex items-center justify-center h-full text-text-muted text-sm">Sem dados neste mês</div>}
+              </div>
+            </div>
+
+            <div className="bg-surface border border-border rounded-3xl p-6 lg:col-span-2">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Prioridade</h3>
+              <div className="h-[250px] w-full">
+                {barPriority.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barPriority} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                      <Bar dataKey="Quantidade" fill="#5BC4FF" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                        {barPriority.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={
+                            entry.name === 'Urgente' ? '#FF4D6D' : 
+                            entry.name === 'Alta' ? '#FFB347' : 
+                            entry.name === 'Média' ? '#EAB308' : '#00C896'
+                          } />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div className="flex items-center justify-center h-full text-text-muted text-sm">Sem dados neste mês</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-surface border border-border2 rounded-3xl p-6 shadow-[0_0_30px_rgba(0,200,150,0.07)]">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-4">Exportar Dados</h3>
+            <p className="text-[0.8rem] text-text-muted mb-6">Selecione os dados que deseja incluir no relatório exportado.</p>
+            
+            <div className="space-y-4 mb-8">
+              <label className="flex items-center gap-3 p-4 bg-surface2 border border-border rounded-2xl cursor-pointer hover:border-green/30 transition-all">
                 <input 
                   type="checkbox" 
-                  checked={includeTickets} 
-                  onChange={(e) => setIncludeTickets(e.target.checked)}
-                  className="w-4 h-4 accent-green"
+                  checked={includeLogs} 
+                  onChange={(e) => setIncludeLogs(e.target.checked)}
+                  className="w-5 h-5 accent-green"
                 />
-                <span className="text-[0.85rem] font-medium text-text">Chamados de TI</span>
+                <span className="text-[0.9rem] font-medium text-text">Registros de Ponto</span>
               </label>
-              
-              {includeTickets && (
-                <div className="pl-7 pt-2 flex gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'all'} onChange={() => setTicketStatusFilter('all')} className="accent-green" />
-                    <span className="text-[0.75rem] text-text-muted">Todos</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'resolved'} onChange={() => setTicketStatusFilter('resolved')} className="accent-green" />
-                    <span className="text-[0.75rem] text-text-muted">Apenas Resolvidos</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'open'} onChange={() => setTicketStatusFilter('open')} className="accent-green" />
-                    <span className="text-[0.75rem] text-text-muted">Apenas Abertos</span>
-                  </label>
+              <div className="flex flex-col gap-3 p-4 bg-surface2 border border-border rounded-2xl transition-all">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={includeTickets} 
+                    onChange={(e) => setIncludeTickets(e.target.checked)}
+                    className="w-5 h-5 accent-green"
+                  />
+                  <span className="text-[0.9rem] font-medium text-text">Chamados de TI</span>
+                </label>
+                
+                {includeTickets && (
+                  <div className="pl-8 pt-2 flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'all'} onChange={() => setTicketStatusFilter('all')} className="accent-green" />
+                      <span className="text-[0.8rem] text-text-muted">Todos</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'resolved'} onChange={() => setTicketStatusFilter('resolved')} className="accent-green" />
+                      <span className="text-[0.8rem] text-text-muted">Apenas Resolvidos</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="ticketStatus" checked={ticketStatusFilter === 'open'} onChange={() => setTicketStatusFilter('open')} className="accent-green" />
+                      <span className="text-[0.8rem] text-text-muted">Apenas Abertos</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={exportPDF}
+                className="bg-green text-bg font-bold text-[0.9rem] p-4 rounded-xl shadow-[0_4px_20px_rgba(0,200,150,0.3)] hover:bg-green-dim transition-all flex items-center justify-center gap-2"
+              >
+                <FileDown size={20} /> Baixar PDF
+              </button>
+              <button 
+                onClick={exportCSV}
+                className="bg-surface border border-border text-text-dim font-bold text-[0.9rem] p-4 rounded-xl hover:border-border2 hover:text-text hover:bg-surface2 transition-all flex items-center justify-center gap-2"
+              >
+                <Table size={20} /> Baixar CSV
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-surface border border-border rounded-3xl p-6">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-4">Pré-visualização do Relatório</h3>
+            {(includeLogs && filteredLogs.length > 0) || (includeTickets && filteredTickets.length > 0) ? (
+              <div className="bg-surface2 rounded-2xl p-6 border border-border">
+                <div className="mb-4">
+                  <strong className="text-text text-lg block mb-1">{profile.name || '—'}</strong>
+                  <span className="text-text-muted text-sm">CPF: {profile.cpf ? maskCPF(profile.cpf) : '—'}</span>
+                  <br />
+                  <span className="text-text-muted text-sm">Cargo: {profile.cargo || '—'}</span>
                 </div>
-              )}
-            </div>
+                <div className="h-px bg-border my-4" />
+                <div className="space-y-2">
+                  <p className="text-text-dim text-sm flex justify-between">
+                    <span>Mês de Referência:</span>
+                    <strong className="text-text">{formatMonthLabel(selectedMonth)}</strong>
+                  </p>
+                  <p className="text-text-dim text-sm flex justify-between">
+                    <span>Registros de Ponto:</span>
+                    <strong className="text-text">{includeLogs ? filteredLogs.length : 0}</strong>
+                  </p>
+                  <p className="text-text-dim text-sm flex justify-between">
+                    <span>Chamados:</span>
+                    <strong className="text-text">{includeTickets ? filteredTickets.length : 0}</strong>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-text-muted flex flex-col items-center gap-4 opacity-50 bg-surface2 rounded-2xl border border-border border-dashed">
+                <FileText size={48} />
+                <p className="text-sm">Sem registros selecionados para {formatMonthLabel(selectedMonth)}.</p>
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button 
-            onClick={exportPDF}
-            className="bg-green text-bg font-semibold text-[0.9rem] p-3 rounded-lg shadow-[0_4px_20px_rgba(0,200,150,0.3)] hover:bg-green-dim transition-all flex items-center justify-center gap-2"
-          >
-            <FileDown size={18} /> PDF
-          </button>
-          <button 
-            onClick={exportCSV}
-            className="bg-surface border border-border text-text-dim font-semibold text-[0.9rem] p-3 rounded-lg hover:border-border2 hover:text-text hover:bg-surface2 transition-all flex items-center justify-center gap-2"
-          >
-            <Table size={18} /> CSV
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-surface border border-border rounded-2xl p-5">
-        <h3 className="text-[0.9rem] font-semibold text-text-dim mb-4">Pré-visualização</h3>
-        {(includeLogs && filteredLogs.length > 0) || (includeTickets && filteredTickets.length > 0) ? (
-          <div className="text-[0.82rem] text-text-dim leading-relaxed">
-            <div className="mb-3">
-              <strong className="text-text">{profile.name || '—'}</strong> · CPF {profile.cpf ? maskCPF(profile.cpf) : '—'}
-              <br />
-              <span className="text-text-muted">{profile.cargo || '—'}</span>
-            </div>
-            <div className="h-px bg-border my-4" />
-            <p className="text-text-muted text-[0.75rem]">
-              Inclui {includeLogs ? filteredLogs.length : 0} registros de ponto e {includeTickets ? filteredTickets.length : 0} chamados.
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-text-muted flex flex-col items-center gap-3 opacity-50">
-            <FileText size={32} />
-            <p className="text-[0.82rem]">Sem registros selecionados para {formatMonthLabel(selectedMonth)}.</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
