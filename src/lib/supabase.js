@@ -77,6 +77,7 @@ export const supabaseAdminAuth = supabaseUrl && supabaseAnonKey && isValidUrl(su
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+        storageKey: 'sb-admin-auth-token',
         detectSessionInUrl: false
       }
     })

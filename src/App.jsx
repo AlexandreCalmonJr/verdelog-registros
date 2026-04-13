@@ -133,9 +133,24 @@ export default function App() {
       return;
     }
     
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // Get initial session explicitly to ensure it loads on F5
+    console.log("Checking session on load...");
+    
+    // Debug localStorage
+    try {
+      const keys = Object.keys(localStorage);
+      const sbKeys = keys.filter(k => k.startsWith('sb-'));
+      console.log("Supabase keys in localStorage:", sbKeys);
+    } catch (e) {
+      console.error("Cannot access localStorage:", e);
+    }
+
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log("getSession result:", session ? "Session found" : "No session", error);
+      if (error) {
+        console.error("Error getting session:", error);
+        setLoading(false);
+      } else if (session) {
         setUser(session.user);
         loadUserData(session.user);
       } else {
@@ -144,6 +159,7 @@ export default function App() {
     });
     
     const { data: { subscription } } = supabase.auth.onAuthStateChanged(async (event, session) => {
+      console.log("Auth event:", event, session ? "Session exists" : "No session");
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session) {
           setUser(session.user);
@@ -204,8 +220,8 @@ export default function App() {
     try {
       // 1. Fetch critical data first (Profile and Active Shift)
       let [p, s] = await Promise.all([
-        supabaseService.getProfile(userId),
-        supabaseService.getActiveShift(userId)
+        supabaseService.getProfile(userId).catch(e => { console.error("Error fetching profile:", e); return null; }),
+        supabaseService.getActiveShift(userId).catch(e => { console.error("Error fetching shift:", e); return null; })
       ]);
 
       // Auto-promote specific user to admin if not already
@@ -238,10 +254,10 @@ export default function App() {
 
       // 2. Fetch non-critical data in the background
       const [l, t, e, sec] = await Promise.all([
-        supabaseService.getLogs(userId),
-        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current),
-        supabaseService.getEquipment(),
-        supabaseService.getSectors()
+        supabaseService.getLogs(userId).catch(e => { console.error("Error fetching logs:", e); return []; }),
+        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
+        supabaseService.getEquipment().catch(e => { console.error("Error fetching equipment:", e); return []; }),
+        supabaseService.getSectors().catch(e => { console.error("Error fetching sectors:", e); return []; })
       ]);
 
       const logsWithTickets = (l || []).map(log => ({
@@ -265,7 +281,8 @@ export default function App() {
       // Fetch active shifts count for home stats
       const { count } = await supabase
         .from('active_shifts')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .catch(e => { console.error("Error fetching active shifts count:", e); return { count: 0 }; });
       setActiveShiftsCount(count || 0);
       
     } catch (error) {
