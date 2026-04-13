@@ -17,9 +17,9 @@ const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY').replace(/[\n\r\s]/g, ''
 // Mock object to prevent crashes if credentials are missing or invalid
 const mockSupabase = {
   auth: {
-    onAuthStateChanged: (callback) => {
-      console.warn('Using mock onAuthStateChanged. Auth will not work.');
-      // Return a dummy subscription object
+    // Supabase v2 uses onAuthStateChange (not onAuthStateChanged)
+    onAuthStateChange: (callback) => {
+      console.warn('Using mock onAuthStateChange. Auth will not work.');
       return { data: { subscription: { unsubscribe: () => {} } } };
     },
     signInWithPassword: () => Promise.reject(new Error('Supabase não configurado')),
@@ -56,8 +56,15 @@ const isValidUrl = (url) => {
 
 if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
   try {
-    client = createClient(supabaseUrl, supabaseAnonKey);
-    // Ensure auth is present
+    client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Persist session in localStorage for PWA support
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'sb-verdeit-auth-token',
+      }
+    });
     if (!client.auth) {
       console.warn('Supabase auth is missing from client, falling back to mock.');
       client = mockSupabase;

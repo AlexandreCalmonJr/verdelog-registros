@@ -20,6 +20,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { supabaseService } from '../lib/supabaseService';
+import { supabase } from '../lib/supabase';
 
 export default function Admin({ enabledModules, onToggleModule, profile }) {
   const [users, setUsers] = useState([]);
@@ -40,7 +41,7 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabaseService.supabase.from('profiles').select('*').order('name');
+      const { data, error } = await supabase.from('profiles').select('*').order('name');
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
@@ -90,7 +91,7 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const { error } = await supabaseService.supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId);
@@ -109,7 +110,7 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
     if (!editingUser) return;
     
     try {
-      const { error } = await supabaseService.supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ 
           name: editingUser.name, 

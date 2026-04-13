@@ -23,12 +23,6 @@ import ClientPortal from './components/ClientPortal';
 // Modals
 import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
 
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-12">
-    <div className="w-8 h-8 border-2 border-green border-t-transparent rounded-full animate-spin" />
-  </div>
-);
-
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -50,7 +44,7 @@ export default function App() {
   const [shiftStartTime, setShiftStartTime] = useState(null);
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+  const [toast, setToast] = useState(null);
   const ticketLimitRef = useRef(20);
   const [hasMoreTickets, setHasMoreTickets] = useState(true);
 
@@ -105,7 +99,6 @@ export default function App() {
         showToast(`Sincronizando ${offlineQueue.length} chamados offline...`, 'info');
         try {
           for (const ticket of offlineQueue) {
-            // Remove temp ID so Supabase generates a real one if it was a new ticket
             const dataToSave = { ...ticket };
             if (dataToSave.id && dataToSave.id.startsWith('temp_')) {
               delete dataToSave.id;
@@ -126,27 +119,15 @@ export default function App() {
     return () => window.removeEventListener('online', handleOnline);
   }, [user]);
 
-  // Auth Listener
+  // Auth Listener — uses Supabase v2 onAuthStateChange
   useEffect(() => {
-    if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {
+    if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChange !== 'function') {
       setLoading(false);
       return;
     }
-    
-    // Get initial session explicitly to ensure it loads on F5
-    console.log("Checking session on load...");
-    
-    // Debug localStorage
-    try {
-      const keys = Object.keys(localStorage);
-      const sbKeys = keys.filter(k => k.startsWith('sb-'));
-      console.log("Supabase keys in localStorage:", sbKeys);
-    } catch (e) {
-      console.error("Cannot access localStorage:", e);
-    }
 
+    // Get initial session on load (crucial for PWA/refresh persistence)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log("getSession result:", session ? "Session found" : "No session", error);
       if (error) {
         console.error("Error getting session:", error);
         setLoading(false);
@@ -157,9 +138,9 @@ export default function App() {
         setLoading(false);
       }
     });
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChanged(async (event, session) => {
-      console.log("Auth event:", event, session ? "Session exists" : "No session");
+
+    // Subscribe to auth state changes (Supabase v2: onAuthStateChange)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session) {
           setUser(session.user);
@@ -182,7 +163,6 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // Request Notification Permission
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -193,17 +173,14 @@ export default function App() {
         'postgres_changes',
         { event: '*', schema: 'public' },
         (payload) => {
-          // Trigger Push Notification for new tickets
           if (payload.table === 'tickets' && payload.eventType === 'INSERT') {
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('Novo Chamado', {
                 body: `Chamado #${payload.new.ref} aberto por ${payload.new.requester || 'Usuário'}`,
-                icon: '/favicon.ico'
+                icon: '/favicon.svg'
               });
             }
           }
-          // Prevent infinite loops by not reloading if we just made the change locally
-          // but for a simple app, reloading on any change keeps everything synced
           loadUserData(user);
         }
       )
@@ -218,13 +195,11 @@ export default function App() {
     if (!authUser) return;
     const userId = authUser.id;
     try {
-      // 1. Fetch critical data first (Profile and Active Shift)
       let [p, s] = await Promise.all([
         supabaseService.getProfile(userId).catch(e => { console.error("Error fetching profile:", e); return null; }),
         supabaseService.getActiveShift(userId).catch(e => { console.error("Error fetching shift:", e); return null; })
       ]);
 
-      // Auto-promote specific user to admin if not already
       if (authUser?.email?.toLowerCase() === 'alexandrecalmonjunior@gmail.com' && p?.role !== 'admin_sistema') {
         try {
           p = await supabaseService.upsertProfile({ 
@@ -252,7 +227,6 @@ export default function App() {
         setCurrentShiftId(null);
       }
 
-      // 2. Fetch non-critical data in the background
       const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId).catch(e => { console.error("Error fetching logs:", e); return []; }),
         supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
@@ -271,14 +245,12 @@ export default function App() {
       setEquipment(e || []);
       setSectors(sec || []);
 
-      // Filter equipment assigned to this user
       const assigned = (e || []).filter(item => 
         item.assigned_user_id === userId || 
         (item.assigned_user_name && item.assigned_user_name.toLowerCase() === p?.name?.toLowerCase())
       );
       setAssignedEquipment(assigned);
       
-      // Fetch active shifts count for home stats
       const { count } = await supabase
         .from('active_shifts')
         .select('*', { count: 'exact', head: true })
@@ -293,8 +265,6 @@ export default function App() {
   };
 
   const handleLogin = async (u) => {
-    // If it's a demo account, we might need to handle it differently 
-    // but for now let's assume standard Supabase Auth
     setUser(u);
     ticketLimitRef.current = 20;
     await loadUserData(u);
@@ -314,7 +284,6 @@ export default function App() {
   const startShift = async () => {
     if (!user) return;
     
-    // Attempt to get location
     let location = null;
     if ('geolocation' in navigator) {
       try {
@@ -354,9 +323,7 @@ export default function App() {
         total_horas: Math.round(totalH * 100) / 100,
       });
 
-      // Link active tickets to this log
       await supabaseService.linkTicketsToLog(user.id, newLog.id);
-
       await supabaseService.endShift(user.id);
       await loadUserData(user);
       
@@ -388,7 +355,7 @@ export default function App() {
         user_id: user.id,
         is_active: data.status === 'resolved' ? false : (data.id ? (data.is_active ?? true) : true),
         ponto_id: data.ponto_id || null,
-        equipment_id: data.equipment_id || null, // Fix UUID error: convert "" to null
+        equipment_id: data.equipment_id || null,
         date: data.date || now.toISOString().split('T')[0],
         date_display: dateDisplay,
         hora: data.hora || now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -404,9 +371,7 @@ export default function App() {
       }
 
       if (!navigator.onLine) {
-        // Offline Mode: Save to localStorage queue
         const offlineQueue = JSON.parse(localStorage.getItem('verdeit_offline_tickets') || '[]');
-        // If it's a new ticket without ID, generate a temporary one
         if (!ticketData.id) {
           ticketData.id = 'temp_' + Date.now();
           ticketData.ref = 'OFF-' + Math.floor(Math.random() * 1000);
@@ -414,7 +379,6 @@ export default function App() {
         offlineQueue.push(ticketData);
         localStorage.setItem('verdeit_offline_tickets', JSON.stringify(offlineQueue));
         
-        // Optimistically update UI
         setTickets(prev => {
           const exists = prev.find(t => t.id === ticketData.id);
           if (exists) return prev.map(t => t.id === ticketData.id ? ticketData : t);
@@ -452,7 +416,6 @@ export default function App() {
   const updateTicketStatus = async (ticketId, newStatus) => {
     const ticket = tickets.find(t => t.id === ticketId);
     if (!ticket) return;
-    
     await saveTicket({ ...ticket, status: newStatus });
   };
 

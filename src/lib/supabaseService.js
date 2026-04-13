@@ -351,7 +351,7 @@ export const supabaseService = {
     checkClient();
     const { data, error } = await supabase
       .from('wiki_articles')
-      .select('*, profiles(name)')
+      .select('*')
       .order('updated_at', { ascending: false });
     if (error) throw error;
     return data;
