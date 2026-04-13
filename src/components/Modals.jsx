@@ -191,6 +191,7 @@ export function TicketModal({
               <option value="open">Aberto (A Fazer)</option>
               <option value="in_progress">Em Andamento</option>
               <option value="pending">Pendente (Aguardando)</option>
+              <option value="waiting_third_party">Aguardando Terceiros (Pausa SLA)</option>
               <option value="escalated">Escalado</option>
               <option value="resolved">Resolvido (Concluído)</option>
             </select>

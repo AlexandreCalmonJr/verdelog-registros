@@ -171,6 +171,43 @@ export default function Home({ user, onNavigate, stats, assignedEquipment, enabl
         </section>
       )}
 
+      {/* Pending Tickets Section */}
+      {tickets && tickets.filter(t => t.status !== 'resolved').length > 0 && (
+        <section className="bg-surface border border-border rounded-3xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 text-text-dim">
+              <Ticket size={18} />
+              <h2 className="text-sm font-bold uppercase tracking-widest">Chamados Pendentes</h2>
+            </div>
+            <button 
+              onClick={() => onNavigate('chamados')}
+              className="text-xs text-green hover:underline font-semibold"
+            >
+              Ver Todos
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {tickets.filter(t => t.status !== 'resolved').slice(0, 4).map(ticket => (
+              <div key={ticket.id} className="bg-surface2 border border-border rounded-2xl p-4 flex flex-col gap-2 hover:border-green/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-text-muted">#{ticket.id.slice(0,8)}</span>
+                  <span className={`text-[0.65rem] font-bold uppercase px-2 py-0.5 rounded-full ${
+                    ticket.priority === 'critical' ? 'bg-red/10 text-red' :
+                    ticket.priority === 'high' ? 'bg-amber/10 text-amber' :
+                    ticket.priority === 'medium' ? 'bg-blue/10 text-blue' :
+                    'bg-surface border border-border text-text-muted'
+                  }`}>
+                    {ticket.priority === 'critical' ? 'Crítica' : ticket.priority === 'high' ? 'Alta' : ticket.priority === 'medium' ? 'Média' : 'Baixa'}
+                  </span>
+                </div>
+                <div className="font-bold text-sm line-clamp-1">{ticket.cliente || 'Sem Setor'}</div>
+                <div className="text-xs text-text-dim line-clamp-2">{ticket.description}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {menuItems.map((item, index) => (
           <button

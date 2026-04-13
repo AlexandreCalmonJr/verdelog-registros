@@ -14,7 +14,9 @@ import {
   BookOpen,
   ShieldAlert,
   Users,
-  UserCog
+  UserCog,
+  Edit2,
+  X
 } from 'lucide-react';
 import { supabaseService } from '../lib/supabaseService';
 

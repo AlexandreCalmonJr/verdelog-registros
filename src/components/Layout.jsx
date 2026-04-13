@@ -18,15 +18,85 @@ import {
   LogOut,
   Settings,
   BookOpen,
-  History
+  History,
+  Bell,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export default function Layout({ user, profile, activeTab, setActiveTab, enabledModules, onOpenProfile, tickets, equipment, onSelectSearchResult, children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('verdeit_theme') || 'dark');
   const bottomNavRef = useRef(null);
   
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+    localStorage.setItem('verdeit_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   const navDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+
+  // Compute Notifications
+  const notifications = React.useMemo(() => {
+    if (!tickets) return [];
+    const notifs = [];
+    const now = new Date();
+    
+    tickets.forEach(t => {
+      if (t.status === 'resolved') return;
+      
+      const start = new Date(t.created_at);
+      const diffHrs = (now - start) / (1000 * 60 * 60);
+      
+      // SLA Breach logic
+      const slaLimits = { critical: 4, high: 8, medium: 24, low: 48 };
+      const limitHrs = slaLimits[t.priority] || 24;
+      
+      if (diffHrs > limitHrs) {
+        notifs.push({
+          id: `sla-${t.id}`,
+          type: 'danger',
+          title: 'SLA Estourado',
+          message: `O chamado #${t.id} (${t.cliente}) ultrapassou o limite de tempo.`,
+          ticket: t
+        });
+      } else if (diffHrs > limitHrs * 0.75) {
+        notifs.push({
+          id: `warn-${t.id}`,
+          type: 'warning',
+          title: 'SLA em Risco',
+          message: `O chamado #${t.id} está próximo do limite de tempo.`,
+          ticket: t
+        });
+      }
+      
+      // New ticket (last 2 hours)
+      if (diffHrs < 2 && t.status === 'open') {
+        notifs.push({
+          id: `new-${t.id}`,
+          type: 'info',
+          title: 'Novo Chamado',
+          message: `Chamado #${t.id} aberto recentemente por ${t.requester || t.cliente}.`,
+          ticket: t
+        });
+      }
+    });
+    
+    return notifs.sort((a, b) => {
+      const weight = { danger: 3, warning: 2, info: 1 };
+      return weight[b.type] - weight[a.type];
+    });
+  }, [tickets]);
 
   // Scroll active item into view on bottom nav
   useEffect(() => {
@@ -189,6 +259,66 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline text-[0.7rem] text-text-muted font-mono uppercase">{navDate}</span>
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+              title="Alternar Tema"
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all relative"
+              >
+                <Bell size={18} />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red text-white text-[0.55rem] font-bold flex items-center justify-center rounded-full border-2 border-bg">
+                    {notifications.length > 9 ? '9+' : notifications.length}
+                  </span>
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-72 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden z-[200]"
+                  >
+                    <div className="p-3 border-b border-border bg-surface2/50 flex items-center justify-between">
+                      <h4 className="font-bold text-sm">Notificações</h4>
+                      <span className="text-[0.65rem] bg-surface2 px-2 py-0.5 rounded text-text-muted">{notifications.length}</span>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-text-muted text-sm">Nenhuma notificação no momento.</div>
+                      ) : (
+                        notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            onClick={() => {
+                              setShowNotifications(false);
+                              onSelectSearchResult({ type: 'ticket', data: n.ticket });
+                            }}
+                            className="p-3 border-b border-border/50 hover:bg-surface2 cursor-pointer transition-colors"
+                          >
+                            <div className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${
+                              n.type === 'danger' ? 'text-red' : 
+                              n.type === 'warning' ? 'text-amber' : 'text-blue'
+                            }`}>
+                              {n.title}
+                            </div>
+                            <div className="text-xs text-text-dim leading-relaxed">{n.message}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <button 
               onClick={onOpenProfile}
               className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
@@ -215,6 +345,66 @@ export default function Layout({ user, profile, activeTab, setActiveTab, enabled
           </div>
 
           <div className="flex items-center gap-4 shrink-0">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+              title="Alternar Tema"
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all relative"
+              >
+                <Bell size={18} />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red text-white text-[0.55rem] font-bold flex items-center justify-center rounded-full border-2 border-bg">
+                    {notifications.length > 9 ? '9+' : notifications.length}
+                  </span>
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-80 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden z-[200]"
+                  >
+                    <div className="p-3 border-b border-border bg-surface2/50 flex items-center justify-between">
+                      <h4 className="font-bold text-sm">Notificações</h4>
+                      <span className="text-[0.65rem] bg-surface2 px-2 py-0.5 rounded text-text-muted">{notifications.length}</span>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-text-muted text-sm">Nenhuma notificação no momento.</div>
+                      ) : (
+                        notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            onClick={() => {
+                              setShowNotifications(false);
+                              onSelectSearchResult({ type: 'ticket', data: n.ticket });
+                            }}
+                            className="p-3 border-b border-border/50 hover:bg-surface2 cursor-pointer transition-colors"
+                          >
+                            <div className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${
+                              n.type === 'danger' ? 'text-red' : 
+                              n.type === 'warning' ? 'text-amber' : 'text-blue'
+                            }`}>
+                              {n.title}
+                            </div>
+                            <div className="text-xs text-text-dim leading-relaxed">{n.message}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="text-[0.7rem] bg-surface2 px-3 py-1.5 rounded-full border border-border text-text-muted font-medium">
               Sessão Ativa: {profile?.name || user?.email}
             </div>

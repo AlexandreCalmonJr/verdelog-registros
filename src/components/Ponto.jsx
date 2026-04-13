@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatHours } from '../lib/utils';
-import { Play, Square, Plus, FileClock } from 'lucide-react';
+import { Play, Square, Plus, FileClock, MapPin } from 'lucide-react';
 
 export default function Ponto({ 
   isWorking, 
@@ -83,9 +83,14 @@ export default function Ponto({
                 className="h-full bg-gradient-to-r from-green to-[#00ffa3] rounded-full"
               />
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[0.82rem] text-text-dim">
-              <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse-ring" />
-              Início: <span className="font-mono text-green">{shiftStartTime?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="mt-4 flex items-center justify-between text-[0.82rem] text-text-dim">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-green animate-pulse-ring" />
+                Início: <span className="font-mono text-green">{shiftStartTime?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="flex items-center gap-1 text-text-muted" title="Localização capturada">
+                <MapPin size={12} /> <span className="text-[0.65rem] uppercase">GPS Ativo</span>
+              </div>
             </div>
           </div>
         )}

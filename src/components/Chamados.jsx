@@ -61,6 +61,7 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
 
   const getSLAStatus = (t) => {
     if (t.status === 'resolved' || !t.created_at) return null;
+    if (t.status === 'waiting_third_party') return { status: 'paused', label: 'SLA Pausado', cls: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' };
     
     // Define SLA limits in hours based on priority
     const slaLimits = {
@@ -76,18 +77,24 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
     const diffMs = now - start;
     const diffHrs = diffMs / (1000 * 60 * 60);
     
+    const remainingMs = (limitHrs * 60 * 60 * 1000) - diffMs;
+    const remainingHrs = Math.floor(Math.abs(remainingMs) / (1000 * 60 * 60));
+    const remainingMins = Math.floor((Math.abs(remainingMs) % (1000 * 60 * 60)) / (1000 * 60));
+    const timeStr = `${remainingHrs}h ${remainingMins}m`;
+    
     if (diffHrs > limitHrs) {
-      return { status: 'breached', label: 'SLA Estourado', cls: 'bg-red/10 text-red border border-red/20' };
+      return { status: 'breached', label: `SLA Estourado (-${timeStr})`, cls: 'bg-red/10 text-red border border-red/20' };
     } else if (diffHrs > limitHrs * 0.75) {
-      return { status: 'warning', label: 'SLA em Risco', cls: 'bg-amber/10 text-amber border border-amber/20' };
+      return { status: 'warning', label: `SLA em Risco (${timeStr})`, cls: 'bg-amber/10 text-amber border border-amber/20' };
     }
-    return null;
+    return { status: 'ok', label: `SLA OK (${timeStr})`, cls: 'bg-green/10 text-green border border-green/20' };
   };
 
   const statusMap = {
     open: { cls: 'bg-[rgba(255,179,71,0.12)] text-amber border-[rgba(255,179,71,0.2)]', label: 'Aberto' },
     in_progress: { cls: 'bg-[rgba(91,196,255,0.12)] text-blue border-[rgba(91,196,255,0.2)]', label: 'Em Andamento' },
     pending: { cls: 'bg-[rgba(255,77,109,0.12)] text-red border-[rgba(255,77,109,0.2)]', label: 'Pendente' },
+    waiting_third_party: { cls: 'bg-purple-500/10 text-purple-500 border-purple-500/20', label: 'Aguardando Terceiros' },
     escalated: { cls: 'bg-purple-500/10 text-purple-500 border-purple-500/20', label: 'Escalado' },
     resolved: { cls: 'bg-[rgba(0,200,150,0.12)] text-green border-[rgba(0,200,150,0.2)]', label: 'Resolvido' },
   };
@@ -114,6 +121,7 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
     { id: 'open', title: 'A Fazer', status: 'open' },
     { id: 'in_progress', title: 'Em Andamento', status: 'in_progress' },
     { id: 'pending', title: 'Pendente', status: 'pending' },
+    { id: 'waiting_third_party', title: 'Aguard. Terceiros', status: 'waiting_third_party' },
     { id: 'resolved', title: 'Concluído', status: 'resolved' }
   ];
 

@@ -18,6 +18,7 @@ import Logistics from './components/Logistics';
 import Admin from './components/Admin';
 import Tutorial from './components/Tutorial';
 import Wiki from './components/Wiki';
+import ClientPortal from './components/ClientPortal';
 
 // Modals
 import { StopShiftModal, TicketModal, ProfileModal, LogDetailModal } from './components/Modals';
@@ -96,6 +97,35 @@ export default function App() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [selectedLog, setSelectedLog] = useState(null);
 
+  // Offline Sync Listener
+  useEffect(() => {
+    const handleOnline = async () => {
+      const offlineQueue = JSON.parse(localStorage.getItem('verdeit_offline_tickets') || '[]');
+      if (offlineQueue.length > 0) {
+        showToast(`Sincronizando ${offlineQueue.length} chamados offline...`, 'info');
+        try {
+          for (const ticket of offlineQueue) {
+            // Remove temp ID so Supabase generates a real one if it was a new ticket
+            const dataToSave = { ...ticket };
+            if (dataToSave.id && dataToSave.id.startsWith('temp_')) {
+              delete dataToSave.id;
+            }
+            await supabaseService.upsertTicket(dataToSave);
+          }
+          localStorage.removeItem('verdeit_offline_tickets');
+          if (user) await loadUserData(user);
+          showToast('Sincronização offline concluída!', 'success');
+        } catch (err) {
+          console.error("Offline sync failed", err);
+          showToast('Erro ao sincronizar chamados offline.', 'error');
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [user]);
+
   // Auth Listener
   useEffect(() => {
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChanged !== 'function') {
@@ -136,12 +166,26 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
+    // Request Notification Permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     const channel = supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public' },
         (payload) => {
+          // Trigger Push Notification for new tickets
+          if (payload.table === 'tickets' && payload.eventType === 'INSERT') {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Novo Chamado', {
+                body: `Chamado #${payload.new.ref} aberto por ${payload.new.requester || 'Usuário'}`,
+                icon: '/favicon.ico'
+              });
+            }
+          }
           // Prevent infinite loops by not reloading if we just made the change locally
           // but for a simple app, reloading on any change keeps everything synced
           loadUserData(user);
@@ -252,8 +296,22 @@ export default function App() {
 
   const startShift = async () => {
     if (!user) return;
+    
+    // Attempt to get location
+    let location = null;
+    if ('geolocation' in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        location = `${position.coords.latitude},${position.coords.longitude}`;
+      } catch (err) {
+        console.warn("Geolocation not available or denied:", err);
+      }
+    }
+
     try {
-      const shift = await supabaseService.startShift(user.id);
+      const shift = await supabaseService.startShift(user.id, location);
       setIsWorking(true);
       setShiftStartTime(new Date(shift.start_time));
       setCurrentShiftId(shift.id);
@@ -326,6 +384,30 @@ export default function App() {
 
       if (selectedTicket) {
         ticketData.id = selectedTicket.id;
+      }
+
+      if (!navigator.onLine) {
+        // Offline Mode: Save to localStorage queue
+        const offlineQueue = JSON.parse(localStorage.getItem('verdeit_offline_tickets') || '[]');
+        // If it's a new ticket without ID, generate a temporary one
+        if (!ticketData.id) {
+          ticketData.id = 'temp_' + Date.now();
+          ticketData.ref = 'OFF-' + Math.floor(Math.random() * 1000);
+        }
+        offlineQueue.push(ticketData);
+        localStorage.setItem('verdeit_offline_tickets', JSON.stringify(offlineQueue));
+        
+        // Optimistically update UI
+        setTickets(prev => {
+          const exists = prev.find(t => t.id === ticketData.id);
+          if (exists) return prev.map(t => t.id === ticketData.id ? ticketData : t);
+          return [ticketData, ...prev];
+        });
+        
+        setModals({ ...modals, ticket: false });
+        setSelectedTicket(null);
+        showToast('Salvo offline. Será sincronizado quando houver conexão.', 'warning');
+        return;
       }
 
       await supabaseService.upsertTicket(ticketData);
@@ -407,15 +489,31 @@ export default function App() {
       }}
     >
       {activeTab === 'home' && (
-        <Home 
-          user={user} 
-          onNavigate={setActiveTab} 
-          stats={stats} 
-          assignedEquipment={assignedEquipment}
-          enabledModules={enabledModules}
-          profile={profile}
-          tickets={tickets}
-        />
+        profile?.role === 'colaborador' || profile?.role === 'cliente' ? (
+          <ClientPortal 
+            user={user}
+            profile={profile}
+            tickets={tickets}
+            onNewTicket={() => {
+              setSelectedTicket(null);
+              setModals({ ...modals, ticket: true });
+            }}
+            onEditTicket={(t) => {
+              setSelectedTicket(t);
+              setModals({ ...modals, ticket: true });
+            }}
+          />
+        ) : (
+          <Home 
+            user={user} 
+            onNavigate={setActiveTab} 
+            stats={stats} 
+            assignedEquipment={assignedEquipment}
+            enabledModules={enabledModules}
+            profile={profile}
+            tickets={tickets}
+          />
+        )
       )}
 
       {activeTab === 'ponto' && (

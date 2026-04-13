@@ -364,12 +364,12 @@ export const supabaseService = {
     return data;
   },
 
-  async startShift(userId) {
+  async startShift(userId, location = null) {
     checkClient();
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('active_shifts')
-      .insert({ user_id: userId, start_time: now })
+      .insert({ user_id: userId, start_time: now, location: location })
       .select()
       .single();
     if (error) throw error;

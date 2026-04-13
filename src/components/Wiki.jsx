@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Plus, BookOpen, Edit2, Trash2, X, Save, Tag } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { supabaseService } from '../lib/supabaseService';
 
 export default function Wiki({ user, showToast }) {
@@ -240,13 +241,8 @@ export default function Wiki({ user, showToast }) {
               </div>
             </div>
 
-            <div className="prose prose-invert max-w-none">
-              {/* Simple text rendering for now. Could use react-markdown later */}
-              {viewingArticle.content.split('\n').map((paragraph, idx) => (
-                <p key={idx} className="mb-4 text-[0.95rem] leading-relaxed text-text-dim whitespace-pre-wrap">
-                  {paragraph}
-                </p>
-              ))}
+            <div className="prose prose-invert max-w-none markdown-body">
+              <ReactMarkdown>{viewingArticle.content}</ReactMarkdown>
             </div>
           </motion.div>
         ) : (

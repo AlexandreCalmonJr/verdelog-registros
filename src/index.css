@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  
+:root {
   --color-green: #00C896;
   --color-green-dim: #00a87e;
+  --color-red: #ff4d6d;
+  --color-amber: #ffb347;
+  --color-blue: #5bc4ff;
+
+  /* Dark Theme (Default) */
   --color-bg: #0a0f0d;
   --color-surface: #111916;
   --color-surface2: #182219;
@@ -16,9 +17,38 @@
   --color-text: #e8f5f0;
   --color-text-dim: #7aada0;
   --color-text-muted: #3d6358;
-  --color-red: #ff4d6d;
-  --color-amber: #ffb347;
-  --color-blue: #5bc4ff;
+}
+
+.light {
+  /* Light Theme */
+  --color-bg: #f4f7f6;
+  --color-surface: #ffffff;
+  --color-surface2: #eef2f0;
+  --color-border: rgba(0,200,150,0.2);
+  --color-border2: rgba(0,200,150,0.3);
+  --color-text: #111916;
+  --color-text-dim: #3d6358;
+  --color-text-muted: #7aada0;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  --color-green: var(--color-green);
+  --color-green-dim: var(--color-green-dim);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface2: var(--color-surface2);
+  --color-border: var(--color-border);
+  --color-border2: var(--color-border2);
+  --color-text: var(--color-text);
+  --color-text-dim: var(--color-text-dim);
+  --color-text-muted: var(--color-text-muted);
+  --color-red: var(--color-red);
+  --color-amber: var(--color-amber);
+  --color-blue: var(--color-blue);
 }
 
 @layer base {
@@ -65,3 +95,18 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Markdown Styles */
+.markdown-body h1 { @apply text-2xl font-bold mb-4 mt-6 text-text; }
+.markdown-body h2 { @apply text-xl font-bold mb-3 mt-5 text-text; }
+.markdown-body h3 { @apply text-lg font-bold mb-2 mt-4 text-text; }
+.markdown-body p { @apply mb-4 leading-relaxed text-text-dim; }
+.markdown-body ul { @apply list-disc pl-5 mb-4 text-text-dim space-y-1; }
+.markdown-body ol { @apply list-decimal pl-5 mb-4 text-text-dim space-y-1; }
+.markdown-body a { @apply text-green hover:underline; }
+.markdown-body blockquote { @apply border-l-4 border-green/50 pl-4 py-1 mb-4 italic text-text-muted bg-surface2/50 rounded-r-lg; }
+.markdown-body code { @apply bg-surface2 text-green px-1.5 py-0.5 rounded text-sm font-mono border border-border; }
+.markdown-body pre { @apply bg-surface2 p-4 rounded-xl mb-4 overflow-x-auto border border-border; }
+.markdown-body pre code { @apply bg-transparent p-0 border-none text-text-dim; }
+.markdown-body img { @apply max-w-full h-auto rounded-xl border border-border my-4; }
+.markdown-body hr { @apply border-border my-6; }
