@@ -16,7 +16,8 @@ import {
   Users,
   UserCog,
   Edit2,
-  X
+  X,
+  UserPlus
 } from 'lucide-react';
 import { supabaseService } from '../lib/supabaseService';
 
@@ -24,6 +25,9 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', cargo: '', role: 'colaborador' });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (profile?.role === 'admin_sistema' || profile?.role === 'admin_ti') {
@@ -36,8 +40,6 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // In a real app, you might need a specific Edge Function to fetch all profiles if RLS restricts it.
-      // For this implementation, we assume the admin has RLS bypass or a policy allows reading all profiles.
       const { data, error } = await supabaseService.supabase.from('profiles').select('*').order('name');
       if (error) throw error;
       setUsers(data || []);
@@ -45,6 +47,44 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
       console.error('Erro ao buscar usuários:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      if (newUser.password.length < 6) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      }
+      
+      const createdAuthUser = await supabaseService.adminCreateUser(
+        newUser.email, 
+        newUser.password, 
+        {
+          name: newUser.name,
+          cargo: newUser.cargo,
+          role: newUser.role
+        }
+      );
+      
+      // Add to local state
+      const newProfile = {
+        id: createdAuthUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        cargo: newUser.cargo,
+        role: newUser.role
+      };
+      
+      setUsers([...users, newProfile]);
+      setShowCreateUser(false);
+      setNewUser({ email: '', password: '', name: '', cargo: '', role: 'colaborador' });
+      alert('Usuário criado com sucesso!');
+    } catch (error) {
+      alert('Erro ao criar usuário: ' + error.message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -203,22 +243,23 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
         </>
       ) : (
         <div className="bg-surface border border-border rounded-3xl p-6">
-          <div className="flex items-center gap-2 mb-6 text-green">
-            <Users size={20} />
-            <h3 className="font-bold text-lg">Gestão de Usuários e Permissões</h3>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 text-green">
+              <Users size={20} />
+              <h3 className="font-bold text-lg">Gestão de Usuários e Permissões</h3>
+            </div>
+            <button
+              onClick={() => setShowCreateUser(true)}
+              className="px-4 py-2 bg-green/10 text-green border border-green/20 rounded-lg text-sm font-bold hover:bg-green hover:text-bg transition-colors flex items-center gap-2"
+            >
+              <UserPlus size={16} /> Novo Usuário
+            </button>
           </div>
           
           {loading ? (
             <div className="text-center py-8 text-text-muted">Carregando usuários...</div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="bg-amber/10 border border-amber/20 p-4 rounded-2xl flex gap-3 items-start mb-6">
-                <Info className="text-amber shrink-0" size={18} />
-                <p className="text-[0.75rem] text-amber/90 leading-relaxed">
-                  <strong>Nota sobre criação de usuários:</strong> Por motivos de segurança, novos usuários devem ser convidados ou criados diretamente pelo painel do Supabase (Authentication &gt; Add User). Após a criação, eles aparecerão aqui para edição de nome, cargo e permissões.
-                </p>
-              </div>
-
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border text-xs uppercase tracking-wider text-text-muted">
@@ -329,6 +370,96 @@ export default function Admin({ enabledModules, onToggleModule, profile }) {
                   className="px-4 py-2 rounded-lg text-sm font-semibold bg-green text-bg hover:bg-green-dim transition-colors"
                 >
                   Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Criação de Usuário */}
+      {showCreateUser && (
+        <div className="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border2 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-surface2/50">
+              <h3 className="font-bold flex items-center gap-2"><UserPlus size={18} className="text-green" /> Novo Usuário</h3>
+              <button onClick={() => setShowCreateUser(false)} className="p-1 hover:bg-surface rounded-lg text-text-muted">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateUser} className="p-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">E-mail</label>
+                <input 
+                  type="email" 
+                  required
+                  value={newUser.email} 
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="email@empresa.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Senha Provisória</label>
+                <input 
+                  type="password" 
+                  required
+                  minLength={6}
+                  value={newUser.password} 
+                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Nome Completo</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newUser.name} 
+                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="Nome do usuário"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Cargo / Função</label>
+                <input 
+                  type="text" 
+                  value={newUser.cargo} 
+                  onChange={(e) => setNewUser({...newUser, cargo: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                  placeholder="Ex: Analista de TI"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase mb-1.5">Nível de Acesso</label>
+                <select 
+                  value={newUser.role} 
+                  onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm outline-none focus:border-green"
+                >
+                  <option value="colaborador">Colaborador</option>
+                  <option value="tecnico_ti">Técnico de TI</option>
+                  <option value="admin_ti">Admin de TI</option>
+                  {profile?.role === 'admin_sistema' && (
+                    <option value="admin_sistema">Admin do Sistema</option>
+                  )}
+                </select>
+              </div>
+              <div className="pt-4 flex justify-end gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateUser(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-text-muted hover:bg-surface2 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={creating}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-green text-bg hover:bg-green-dim transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {creating ? 'Criando...' : 'Criar Usuário'}
                 </button>
               </div>
             </form>

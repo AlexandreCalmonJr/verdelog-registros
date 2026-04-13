@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAdminAuth } from './supabase';
 
 const checkClient = () => {
   if (!supabase) {
@@ -23,6 +23,31 @@ export const supabaseService = {
       options: { data: metadata }
     });
     if (error) throw error;
+    return data.user;
+  },
+
+  async adminCreateUser(email, password, metadata) {
+    checkClient();
+    // Uses a separate client instance so it doesn't log the admin out
+    const { data, error } = await supabaseAdminAuth.auth.signUp({
+      email,
+      password,
+      options: { data: metadata }
+    });
+    if (error) throw error;
+    
+    // Create the profile for the new user immediately
+    if (data?.user?.id) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: email,
+        name: metadata.name || email.split('@')[0],
+        role: metadata.role || 'colaborador',
+        cargo: metadata.cargo || ''
+      });
+      if (profileError) console.error("Error creating profile for new user:", profileError);
+    }
+    
     return data.user;
   },
 

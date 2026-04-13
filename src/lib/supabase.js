@@ -71,3 +71,13 @@ if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
 }
 
 export const supabase = client;
+
+export const supabaseAdminAuth = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl) 
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    })
+  : mockSupabase;
