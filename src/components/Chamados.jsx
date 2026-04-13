@@ -175,71 +175,77 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
       key={t.id} 
       draggable={isKanban}
       onDragStart={(e) => isKanban && handleDragStart(e, t.id)}
-      className={`relative bg-surface border border-border rounded-2xl p-4 ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : 'mb-3'} ${updatingId === t.id ? 'opacity-50 pointer-events-none' : ''} ${slaAlert && slaAlert.status === 'breached' ? 'shadow-[0_0_10px_rgba(255,77,109,0.15)] border-red/30' : ''}`}
+      className={`relative bg-surface border border-border rounded-2xl p-4 flex flex-col h-full ${isKanban ? 'cursor-grab active:cursor-grabbing mb-3' : ''} ${updatingId === t.id ? 'opacity-50 pointer-events-none' : ''} ${slaAlert && slaAlert.status === 'breached' ? 'shadow-[0_0_10px_rgba(255,77,109,0.15)] border-red/30' : ''}`}
     >
       {updatingId === t.id && (
         <div className="absolute inset-0 bg-surface/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10">
           <Loader2 className="animate-spin text-green" size={24} />
         </div>
       )}
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${t.ticket_type === 'request' ? 'bg-blue/10 text-blue border border-blue/20' : 'bg-red/10 text-red border border-red/20'}`}>
-              {t.ticket_type === 'request' ? 'REQ' : 'INC'}
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${t.ticket_type === 'request' ? 'bg-blue/10 text-blue border border-blue/20' : 'bg-red/10 text-red border border-red/20'}`}>
+            {t.ticket_type === 'request' ? 'REQ' : 'INC'}
+          </span>
+          <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
+          {slaAlert && (
+            <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${slaAlert.cls}`}>
+              {slaAlert.label}
             </span>
-            <span className="font-mono text-[0.75rem] text-green">#{t.ref}</span>
-            {t.cliente && <span className="text-[0.72rem] text-text-muted">· {t.cliente}</span>}
-            {t.requester && <span className="text-[0.72rem] text-text-muted">({t.requester})</span>}
-            {t.category && (
-              <span className="text-[0.6rem] bg-surface2 border border-border px-1.5 py-0.5 rounded text-text-muted uppercase font-bold">
-                {categoryMap[t.category] || t.category}
-              </span>
-            )}
-            {slaAlert && (
-              <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded uppercase ${slaAlert.cls}`}>
-                {slaAlert.label}
-              </span>
-            )}
-          </div>
-          <div className="text-[0.85rem] text-text-dim font-medium">{t.description}</div>
-          {t.photo_url && (
-            <div className="mt-2">
-              <img 
-                src={t.photo_url} 
-                alt="Evidência" 
-                className="w-16 h-16 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => window.open(t.photo_url, '_blank')}
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          )}
-          {t.status === 'resolved' && t.solution && !isKanban && (
-            <div className="mt-2 p-2 bg-green/5 border-l-2 border-green rounded-r-lg text-[0.8rem] text-text-dim italic">
-              <span className="font-bold text-green not-italic">Solução:</span> {t.solution}
-            </div>
-          )}
-          {t.notes && t.notes.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-2 text-text-muted">
-              <MessageSquare size={12} />
-              <span className="text-[0.7rem] font-medium">{t.notes.length} anotaç{t.notes.length > 1 ? 'ões' : 'ão'}</span>
-            </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+        <div className="flex items-center gap-1 shrink-0">
           {!isKanban && (
-            <span className={`text-[0.7rem] font-semibold px-2.5 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
+            <span className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full border ${statusMap[t.status].cls}`}>
               {statusMap[t.status].label}
-            </span>
-          )}
-          {t.priority && (
-            <span className={`text-[0.6rem] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${priorityMap[t.priority]?.cls || priorityMap.medium.cls}`}>
-              {priorityMap[t.priority]?.label || 'Média'}
             </span>
           )}
         </div>
       </div>
-      <div className="flex justify-between items-center mt-4 pt-3 border-t border-border/50">
+      
+      <div className="flex-1">
+        <div className="text-[0.85rem] text-text-dim font-medium line-clamp-2 mb-2" title={t.description}>{t.description}</div>
+        
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {t.cliente && <span className="text-[0.7rem] text-text-muted bg-surface2 px-2 py-0.5 rounded-md truncate max-w-[120px]" title={t.cliente}>{t.cliente}</span>}
+          {t.requester && <span className="text-[0.7rem] text-text-muted bg-surface2 px-2 py-0.5 rounded-md truncate max-w-[120px]" title={t.requester}>{t.requester}</span>}
+          {t.category && (
+            <span className="text-[0.65rem] border border-border px-1.5 py-0.5 rounded text-text-muted uppercase font-bold">
+              {categoryMap[t.category] || t.category}
+            </span>
+          )}
+          {t.priority && (
+            <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${priorityMap[t.priority]?.cls || priorityMap.medium.cls}`}>
+              {priorityMap[t.priority]?.label || 'Média'}
+            </span>
+          )}
+        </div>
+
+        {t.photo_url && (
+          <div className="mb-3">
+            <img 
+              src={t.photo_url} 
+              alt="Evidência" 
+              className="w-full h-24 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity" 
+              onClick={() => window.open(t.photo_url, '_blank')}
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
+        {t.status === 'resolved' && t.solution && !isKanban && (
+          <div className="mb-3 p-2 bg-green/5 border-l-2 border-green rounded-r-lg text-[0.75rem] text-text-dim italic line-clamp-2" title={t.solution}>
+            <span className="font-bold text-green not-italic">Solução:</span> {t.solution}
+          </div>
+        )}
+        {t.notes && t.notes.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-2 text-text-muted">
+            <MessageSquare size={12} />
+            <span className="text-[0.7rem] font-medium">{t.notes.length} anotaç{t.notes.length > 1 ? 'ões' : 'ão'}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-between items-end mt-2 pt-3 border-t border-border/50">
         <div className="flex flex-col">
           <span className="font-mono text-[0.65rem] text-text-muted">{t.date_display} {t.hora}</span>
           {t.data_fim && !isKanban && (
@@ -253,16 +259,18 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
             </div>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button 
             onClick={() => onEditTicket(t)}
             className="p-1.5 rounded-lg border border-border text-text-dim hover:text-text hover:bg-surface2 transition-all"
+            title="Editar"
           >
             <Pencil size={14} />
           </button>
           <button 
             onClick={() => onDeleteTicket(t.id)}
             className="p-1.5 rounded-lg border border-border text-red/60 hover:text-red hover:bg-red/10 transition-all"
+            title="Excluir"
           >
             <Trash2 size={14} />
           </button>
@@ -353,10 +361,12 @@ export default function Chamados({ tickets, hasMoreTickets, onLoadMore, onNewTic
       </div>
 
       {viewMode === 'list' ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <AnimatePresence>
             {paginatedTickets.length > 0 ? (
-              paginatedTickets.map((t) => renderTicketCard(t, false))
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {paginatedTickets.map((t) => renderTicketCard(t, false))}
+              </div>
             ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
