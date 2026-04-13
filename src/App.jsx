@@ -251,11 +251,15 @@ export default function App() {
       );
       setAssignedEquipment(assigned);
       
-      const { count } = await supabase
-        .from('active_shifts')
-        .select('*', { count: 'exact', head: true })
-        .catch(e => { console.error("Error fetching active shifts count:", e); return { count: 0 }; });
-      setActiveShiftsCount(count || 0);
+      try {
+        const { count } = await supabase
+          .from('active_shifts')
+          .select('*', { count: 'exact', head: true });
+        setActiveShiftsCount(count || 0);
+      } catch (err) {
+        console.error("Error fetching active shifts count:", err);
+        setActiveShiftsCount(0);
+      }
       
     } catch (error) {
       console.error('Error loading data:', error);
