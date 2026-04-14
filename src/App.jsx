@@ -48,6 +48,17 @@ export default function App() {
   const ticketLimitRef = useRef(20);
   const [hasMoreTickets, setHasMoreTickets] = useState(true);
 
+  // Watchdog to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn("VerdeIT: Loading timeout reached. Forcing loading to false.");
+        setLoading(false);
+      }
+    }, 10000); // 10 seconds
+    return () => clearTimeout(timer);
+  }, [loading]);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -55,19 +66,35 @@ export default function App() {
 
   // Module Visibility State
   const [enabledModules, setEnabledModules] = useState(() => {
-    const saved = localStorage.getItem('verdeit_modules');
-    return saved ? JSON.parse(saved) : {
-      home: true,
-      ponto: true,
-      inventario: true,
-      logistica: true,
-      chamados: true,
-      historico: true,
-      relatorio: true,
-      wiki: true,
-      admin: true,
-      tutorial: true
-    };
+    try {
+      const saved = localStorage.getItem('verdeit_modules');
+      return saved ? JSON.parse(saved) : {
+        home: true,
+        ponto: true,
+        inventario: true,
+        logistica: true,
+        chamados: true,
+        historico: true,
+        relatorio: true,
+        wiki: true,
+        admin: true,
+        tutorial: true
+      };
+    } catch (e) {
+      console.error("VerdeIT: Error parsing enabledModules from localStorage:", e);
+      return {
+        home: true,
+        ponto: true,
+        inventario: true,
+        logistica: true,
+        chamados: true,
+        historico: true,
+        relatorio: true,
+        wiki: true,
+        admin: true,
+        tutorial: true
+      };
+    }
   });
 
   useEffect(() => {
@@ -121,15 +148,23 @@ export default function App() {
 
   // Auth Listener — uses Supabase v2 onAuthStateChange
   useEffect(() => {
+    console.log("VerdeIT: Initializing Auth Listener...");
+    
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChange !== 'function') {
+      console.error("VerdeIT: Supabase Auth not available");
       setLoading(false);
       return;
     }
 
+    let isMounted = true;
+
     // Get initial session on load (crucial for PWA/refresh persistence)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!isMounted) return;
+      
+      console.log("VerdeIT: Initial session check:", session ? "Session found" : "No session");
       if (error) {
-        console.error("Error getting session:", error);
+        console.error("VerdeIT: Error getting session:", error);
         setLoading(false);
       } else if (session) {
         setUser(session.user);
@@ -137,26 +172,41 @@ export default function App() {
       } else {
         setLoading(false);
       }
+    }).catch(err => {
+      console.error("VerdeIT: Unexpected error in getSession:", err);
+      if (isMounted) setLoading(false);
     });
 
     // Subscribe to auth state changes (Supabase v2: onAuthStateChange)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session) {
-          setUser(session.user);
-          await loadUserData(session.user);
+    let subscription = null;
+    try {
+      const res = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
+        
+        console.log("VerdeIT: Auth Event:", event);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (session) {
+            setUser(session.user);
+            await loadUserData(session.user);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setLogs([]);
+          setTickets([]);
+          setIsWorking(false);
+          setLoading(false);
         }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setProfile(null);
-        setLogs([]);
-        setTickets([]);
-        setIsWorking(false);
-        setLoading(false);
-      }
-    });
+      });
+      subscription = res?.data?.subscription;
+    } catch (err) {
+      console.error("VerdeIT: Error subscribing to auth changes:", err);
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   // Realtime Updates Listener
@@ -257,13 +307,15 @@ export default function App() {
           .select('*', { count: 'exact', head: true });
         setActiveShiftsCount(count || 0);
       } catch (err) {
-        console.error("Error fetching active shifts count:", err);
+        console.error("VerdeIT: Error fetching active shifts count:", err);
         setActiveShiftsCount(0);
       }
       
+      console.log("VerdeIT: loadUserData completed successfully");
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('VerdeIT: Error loading data:', error);
     } finally {
+      console.log("VerdeIT: Setting loading to false");
       setLoading(false);
     }
   };
@@ -438,8 +490,20 @@ export default function App() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-bg">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-bg gap-6">
       <div className="w-12 h-12 border-4 border-green border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-white/50 text-sm font-medium">Carregando sistema...</p>
+        <button 
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+          className="text-xs text-green/50 hover:text-green underline underline-offset-4 mt-4"
+        >
+          Se demorar muito, clique aqui para resetar
+        </button>
+      </div>
     </div>
   );
 
