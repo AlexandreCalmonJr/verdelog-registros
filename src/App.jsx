@@ -146,7 +146,7 @@ export default function App() {
     return () => window.removeEventListener('online', handleOnline);
   }, [user]);
 
-  // Auth Listener — uses Supabase v2 onAuthStateChange
+  // Auth Listener — uses getSession() on load + onAuthStateChange for future events
   useEffect(() => {
     console.log("VerdeIT: Initializing Auth Listener...");
 
@@ -157,9 +157,35 @@ export default function App() {
     }
 
     let isMounted = true;
-    let initialSessionHandled = false;
+    let sessionRestored = false;
 
-    // Subscribe to auth state changes FIRST (Supabase v2 fires INITIAL_SESSION)
+    // PRIMARY: Read stored session from localStorage immediately
+    const restoreSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!isMounted || sessionRestored) return;
+        sessionRestored = true;
+
+        console.log("VerdeIT: getSession result:", session ? "Session found" : "No session", error || "");
+
+        if (error) {
+          console.error("VerdeIT: Error getting session:", error);
+          setLoading(false);
+        } else if (session?.user) {
+          setUser(session.user);
+          await loadUserData(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("VerdeIT: Unexpected error in getSession:", err);
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    restoreSession();
+
+    // SECONDARY: Subscribe for future auth changes (login, logout, token refresh)
     let subscription = null;
     try {
       const res = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -167,18 +193,11 @@ export default function App() {
 
         console.log("VerdeIT: Auth Event:", event);
 
-        if (event === 'INITIAL_SESSION') {
-          initialSessionHandled = true;
-          if (session) {
-            console.log("VerdeIT: INITIAL_SESSION — restoring session");
-            setUser(session.user);
-            await loadUserData(session.user);
-          } else {
-            console.log("VerdeIT: INITIAL_SESSION — no session");
-            setLoading(false);
-          }
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          if (session) {
+        // Skip INITIAL_SESSION — we handle it via getSession() above
+        if (event === 'INITIAL_SESSION') return;
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (session?.user) {
             setUser(session.user);
             await loadUserData(session.user);
           }
@@ -196,31 +215,8 @@ export default function App() {
       console.error("VerdeIT: Error subscribing to auth changes:", err);
     }
 
-    // Fallback: if INITIAL_SESSION didn't fire after 3s, try getSession manually
-    const fallbackTimer = setTimeout(async () => {
-      if (!isMounted || initialSessionHandled) return;
-      console.log("VerdeIT: INITIAL_SESSION fallback — calling getSession");
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        if (error) {
-          console.error("VerdeIT: Error getting session:", error);
-          setLoading(false);
-        } else if (session) {
-          setUser(session.user);
-          await loadUserData(session.user);
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("VerdeIT: Unexpected error in getSession:", err);
-        if (isMounted) setLoading(false);
-      }
-    }, 3000);
-
     return () => {
       isMounted = false;
-      clearTimeout(fallbackTimer);
       if (subscription) subscription.unsubscribe();
     };
   }, []);
@@ -719,8 +715,8 @@ export default function App() {
             className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[1000] flex items-center justify-center"
           >
             <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border ${toast.type === 'error'
-                ? 'bg-red/10 border-red/20 text-red'
-                : 'bg-green/10 border-green/20 text-green'
+              ? 'bg-red/10 border-red/20 text-red'
+              : 'bg-green/10 border-green/20 text-green'
               } backdrop-blur-xl min-w-[280px]`}>
               {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
               <span className="text-sm font-bold flex-1">{toast.message}</span>
