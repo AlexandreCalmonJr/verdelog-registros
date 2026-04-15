@@ -149,7 +149,7 @@ export default function App() {
   // Auth Listener — uses Supabase v2 onAuthStateChange
   useEffect(() => {
     console.log("VerdeIT: Initializing Auth Listener...");
-    
+
     if (!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChange !== 'function') {
       console.error("VerdeIT: Supabase Auth not available");
       setLoading(false);
@@ -157,34 +157,27 @@ export default function App() {
     }
 
     let isMounted = true;
+    let initialSessionHandled = false;
 
-    // Get initial session on load (crucial for PWA/refresh persistence)
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!isMounted) return;
-      
-      console.log("VerdeIT: Initial session check:", session ? "Session found" : "No session");
-      if (error) {
-        console.error("VerdeIT: Error getting session:", error);
-        setLoading(false);
-      } else if (session) {
-        setUser(session.user);
-        loadUserData(session.user);
-      } else {
-        setLoading(false);
-      }
-    }).catch(err => {
-      console.error("VerdeIT: Unexpected error in getSession:", err);
-      if (isMounted) setLoading(false);
-    });
-
-    // Subscribe to auth state changes (Supabase v2: onAuthStateChange)
+    // Subscribe to auth state changes FIRST (Supabase v2 fires INITIAL_SESSION)
     let subscription = null;
     try {
       const res = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!isMounted) return;
-        
+
         console.log("VerdeIT: Auth Event:", event);
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+
+        if (event === 'INITIAL_SESSION') {
+          initialSessionHandled = true;
+          if (session) {
+            console.log("VerdeIT: INITIAL_SESSION — restoring session");
+            setUser(session.user);
+            await loadUserData(session.user);
+          } else {
+            console.log("VerdeIT: INITIAL_SESSION — no session");
+            setLoading(false);
+          }
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           if (session) {
             setUser(session.user);
             await loadUserData(session.user);
@@ -203,8 +196,31 @@ export default function App() {
       console.error("VerdeIT: Error subscribing to auth changes:", err);
     }
 
+    // Fallback: if INITIAL_SESSION didn't fire after 3s, try getSession manually
+    const fallbackTimer = setTimeout(async () => {
+      if (!isMounted || initialSessionHandled) return;
+      console.log("VerdeIT: INITIAL_SESSION fallback — calling getSession");
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        if (error) {
+          console.error("VerdeIT: Error getting session:", error);
+          setLoading(false);
+        } else if (session) {
+          setUser(session.user);
+          await loadUserData(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("VerdeIT: Unexpected error in getSession:", err);
+        if (isMounted) setLoading(false);
+      }
+    }, 3000);
+
     return () => {
       isMounted = false;
+      clearTimeout(fallbackTimer);
       if (subscription) subscription.unsubscribe();
     };
   }, []);
@@ -252,10 +268,10 @@ export default function App() {
 
       if (authUser?.email?.toLowerCase() === 'alexandrecalmonjunior@gmail.com' && p?.role !== 'admin_sistema') {
         try {
-          p = await supabaseService.upsertProfile({ 
-            ...p, 
-            id: userId, 
-            role: 'admin_sistema', 
+          p = await supabaseService.upsertProfile({
+            ...p,
+            id: userId,
+            role: 'admin_sistema',
             email: authUser.email,
             name: p?.name || 'Alexandre Calmon',
             cargo: p?.cargo || 'Administrador'
@@ -265,8 +281,17 @@ export default function App() {
         }
       }
 
-      setProfile(p || { name: '', cpf: '', cargo: '', email: authUser?.email || '' });
-      
+      // CRITICAL: Always set a valid profile object so the app doesn't redirect to login
+      const validProfile = p || {
+        id: userId,
+        name: authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || '',
+        cpf: '',
+        cargo: '',
+        email: authUser?.email || '',
+        role: 'colaborador'
+      };
+      setProfile(validProfile);
+
       if (s) {
         setIsWorking(true);
         setShiftStartTime(new Date(s.start_time));
@@ -277,9 +302,10 @@ export default function App() {
         setCurrentShiftId(null);
       }
 
+      // Load remaining data — all with catch so one failure doesn't block everything
       const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId).catch(e => { console.error("Error fetching logs:", e); return []; }),
-        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
+        supabaseService.getTickets(userId, validProfile?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
         supabaseService.getEquipment().catch(e => { console.error("Error fetching equipment:", e); return []; }),
         supabaseService.getSectors().catch(e => { console.error("Error fetching sectors:", e); return []; })
       ]);
@@ -295,12 +321,12 @@ export default function App() {
       setEquipment(e || []);
       setSectors(sec || []);
 
-      const assigned = (e || []).filter(item => 
-        item.assigned_user_id === userId || 
-        (item.assigned_user_name && item.assigned_user_name.toLowerCase() === p?.name?.toLowerCase())
+      const assigned = (e || []).filter(item =>
+        item.assigned_user_id === userId ||
+        (item.assigned_user_name && item.assigned_user_name.toLowerCase() === validProfile?.name?.toLowerCase())
       );
       setAssignedEquipment(assigned);
-      
+
       try {
         const { count } = await supabase
           .from('active_shifts')
@@ -310,10 +336,21 @@ export default function App() {
         console.error("VerdeIT: Error fetching active shifts count:", err);
         setActiveShiftsCount(0);
       }
-      
+
       console.log("VerdeIT: loadUserData completed successfully");
     } catch (error) {
       console.error('VerdeIT: Error loading data:', error);
+      // Even on error, ensure profile is set so user doesn't get stuck on login
+      if (!profile && authUser) {
+        setProfile({
+          id: userId,
+          name: authUser?.email?.split('@')[0] || '',
+          cpf: '',
+          cargo: '',
+          email: authUser?.email || '',
+          role: 'colaborador'
+        });
+      }
     } finally {
       console.log("VerdeIT: Setting loading to false");
       setLoading(false);
@@ -339,7 +376,7 @@ export default function App() {
 
   const startShift = async () => {
     if (!user) return;
-    
+
     let location = null;
     if ('geolocation' in navigator) {
       try {
@@ -367,7 +404,7 @@ export default function App() {
     if (!summary || !shiftStartTime || !user) return;
     const now = new Date();
     const totalH = (now.getTime() - shiftStartTime.getTime()) / 3600000;
-    
+
     try {
       const newLog = await supabaseService.createLog({
         user_id: user.id,
@@ -382,7 +419,7 @@ export default function App() {
       await supabaseService.linkTicketsToLog(user.id, newLog.id);
       await supabaseService.endShift(user.id);
       await loadUserData(user);
-      
+
       setIsWorking(false);
       setShiftStartTime(null);
       setCurrentShiftId(null);
@@ -396,7 +433,7 @@ export default function App() {
   const saveTicket = async (data) => {
     if (!user) return;
     const now = new Date();
-    
+
     try {
       let dateDisplay = now.toLocaleDateString('pt-BR');
       if (data.date) {
@@ -434,13 +471,13 @@ export default function App() {
         }
         offlineQueue.push(ticketData);
         localStorage.setItem('verdeit_offline_tickets', JSON.stringify(offlineQueue));
-        
+
         setTickets(prev => {
           const exists = prev.find(t => t.id === ticketData.id);
           if (exists) return prev.map(t => t.id === ticketData.id ? ticketData : t);
           return [ticketData, ...prev];
         });
-        
+
         setModals({ ...modals, ticket: false });
         setSelectedTicket(null);
         showToast('Salvo offline. Será sincronizado quando houver conexão.', 'warning');
@@ -478,7 +515,7 @@ export default function App() {
   const saveProfile = async (p) => {
     if (!user) return;
     if (p.cpf && !validarCPF(p.cpf)) return alert('CPF inválido');
-    
+
     try {
       await supabaseService.upsertProfile({ ...p, id: user.id });
       setProfile(p);
@@ -494,14 +531,19 @@ export default function App() {
       <div className="w-12 h-12 border-4 border-green border-t-transparent rounded-full animate-spin" />
       <div className="flex flex-col items-center gap-2">
         <p className="text-white/50 text-sm font-medium">Carregando sistema...</p>
-        <button 
+        <button
           onClick={() => {
-            localStorage.clear();
+            // Only clear app data, keep auth tokens
+            localStorage.removeItem('verdeit_active_tab');
+            localStorage.removeItem('verdeit_modules');
+            localStorage.removeItem('verdeit_chamados_view');
+            localStorage.removeItem('verdeit_chamados_filters');
+            localStorage.removeItem('verdeit_offline_tickets');
             window.location.reload();
           }}
           className="text-xs text-green/50 hover:text-green underline underline-offset-4 mt-4"
         >
-          Se demorar muito, clique aqui para resetar
+          Se demorar muito, clique aqui para recarregar
         </button>
       </div>
     </div>
@@ -517,10 +559,10 @@ export default function App() {
   };
 
   return (
-    <Layout 
-      user={user} 
-      profile={profile} 
-      activeTab={activeTab} 
+    <Layout
+      user={user}
+      profile={profile}
+      activeTab={activeTab}
       setActiveTab={setActiveTab}
       enabledModules={enabledModules}
       onOpenProfile={() => setModals({ ...modals, profile: true })}
@@ -538,7 +580,7 @@ export default function App() {
     >
       {activeTab === 'home' && (
         profile?.role === 'colaborador' || profile?.role === 'cliente' ? (
-          <ClientPortal 
+          <ClientPortal
             user={user}
             profile={profile}
             tickets={tickets}
@@ -552,10 +594,10 @@ export default function App() {
             }}
           />
         ) : (
-          <Home 
-            user={user} 
-            onNavigate={setActiveTab} 
-            stats={stats} 
+          <Home
+            user={user}
+            onNavigate={setActiveTab}
+            stats={stats}
             assignedEquipment={assignedEquipment}
             enabledModules={enabledModules}
             profile={profile}
@@ -565,7 +607,7 @@ export default function App() {
       )}
 
       {activeTab === 'ponto' && (
-        <Ponto 
+        <Ponto
           isWorking={isWorking}
           shiftStartTime={shiftStartTime}
           logs={logs}
@@ -578,13 +620,13 @@ export default function App() {
       )}
 
       {activeTab === 'inventario' && (
-        <Inventory 
-          user={user} 
+        <Inventory
+          user={user}
           profile={profile}
-          onNewTicket={(equipId) => { 
-            setSelectedTicket({ equipment_id: equipId }); 
-            setModals({ ...modals, ticket: true }); 
-          }} 
+          onNewTicket={(equipId) => {
+            setSelectedTicket({ equipment_id: equipId });
+            setModals({ ...modals, ticket: true });
+          }}
           showToast={showToast}
         />
       )}
@@ -594,7 +636,7 @@ export default function App() {
       )}
 
       {activeTab === 'chamados' && (
-        <Chamados 
+        <Chamados
           tickets={tickets}
           hasMoreTickets={hasMoreTickets}
           onLoadMore={loadMoreTickets}
@@ -606,14 +648,14 @@ export default function App() {
       )}
 
       {activeTab === 'historico' && (
-        <Historico 
+        <Historico
           logs={logs}
           onViewLog={(log) => { setSelectedLog(log); setModals({ ...modals, logDetail: true }); }}
         />
       )}
 
       {activeTab === 'relatorio' && (
-        <Relatorio 
+        <Relatorio
           logs={logs}
           tickets={tickets}
           profile={profile}
@@ -621,14 +663,14 @@ export default function App() {
       )}
 
       {activeTab === 'wiki' && (
-        <Wiki 
+        <Wiki
           user={user}
           showToast={showToast}
         />
       )}
 
       {activeTab === 'admin' && (
-        <Admin 
+        <Admin
           enabledModules={enabledModules}
           onToggleModule={toggleModule}
           profile={profile}
@@ -640,12 +682,12 @@ export default function App() {
       )}
 
       {/* Modals */}
-      <StopShiftModal 
-        isOpen={modals.stop} 
+      <StopShiftModal
+        isOpen={modals.stop}
         onClose={() => setModals({ ...modals, stop: false })}
         onConfirm={confirmStopShift}
       />
-      <TicketModal 
+      <TicketModal
         isOpen={modals.ticket}
         onClose={() => setModals({ ...modals, ticket: false })}
         onSave={saveTicket}
@@ -653,7 +695,7 @@ export default function App() {
         equipment={equipment}
         profile={profile}
       />
-      <ProfileModal 
+      <ProfileModal
         isOpen={modals.profile}
         onClose={() => setModals({ ...modals, profile: false })}
         onSave={saveProfile}
@@ -661,7 +703,7 @@ export default function App() {
         profile={profile}
         userEmail={user.email}
       />
-      <LogDetailModal 
+      <LogDetailModal
         isOpen={modals.logDetail}
         onClose={() => setModals({ ...modals, logDetail: false })}
         log={selectedLog}
@@ -676,11 +718,10 @@ export default function App() {
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[1000] flex items-center justify-center"
           >
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border ${
-              toast.type === 'error' 
-                ? 'bg-red/10 border-red/20 text-red' 
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border ${toast.type === 'error'
+                ? 'bg-red/10 border-red/20 text-red'
                 : 'bg-green/10 border-green/20 text-green'
-            } backdrop-blur-xl min-w-[280px]`}>
+              } backdrop-blur-xl min-w-[280px]`}>
               {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
               <span className="text-sm font-bold flex-1">{toast.message}</span>
               <button onClick={() => setToast(null)} className="p-1 hover:bg-white/10 rounded-lg">
