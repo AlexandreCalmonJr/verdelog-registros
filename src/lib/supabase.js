@@ -79,13 +79,16 @@ if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
 
 export const supabase = client;
 
-export const supabaseAdminAuth = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl) 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        storageKey: 'sb-admin-auth-token',
-        detectSessionInUrl: false
-      }
-    })
-  : mockSupabase;
+// Lazy-loaded admin client to avoid "Multiple GoTrueClient" warnings during initial load
+export const getAdminClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey || !isValidUrl(supabaseUrl)) return mockSupabase;
+  
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      storageKey: 'sb-admin-auth-token',
+      detectSessionInUrl: false
+    }
+  });
+};

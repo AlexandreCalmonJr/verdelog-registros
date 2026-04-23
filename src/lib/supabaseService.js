@@ -1,4 +1,4 @@
-import { supabase, supabaseAdminAuth } from './supabase';
+import { supabase, getAdminClient } from './supabase';
 
 const checkClient = () => {
   if (!supabase) {
@@ -28,8 +28,9 @@ export const supabaseService = {
 
   async adminCreateUser(email, password, metadata) {
     checkClient();
+    const adminClient = getAdminClient();
     // Uses a separate client instance so it doesn't log the admin out
-    const { data, error } = await supabaseAdminAuth.auth.signUp({
+    const { data, error } = await adminClient.auth.signUp({
       email,
       password,
       options: { data: metadata }

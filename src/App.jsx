@@ -258,8 +258,10 @@ export default function App() {
     if (!authUser || isFetchingRef.current) return;
     isFetchingRef.current = true;
     const userId = authUser.id;
-    console.log("VerdeIT: loadUserData - Starting for", authUser.email);
+    console.log("VerdeIT: loadUserData - Phase 1: High Priority Data", authUser.email);
+    
     try {
+      // PHASE 1: Data needed for basic UI and identity
       let [p, s] = await Promise.all([
         supabaseService.getProfile(userId).catch(e => { console.error("Error fetching profile:", e); return null; }),
         supabaseService.getActiveShift(userId).catch(e => { console.error("Error fetching shift:", e); return null; })
@@ -292,6 +294,12 @@ export default function App() {
         setCurrentShiftId(null);
       }
 
+      // RELEASE UI: App is now usable (though logs/tickets still coming)
+      console.log("VerdeIT: Releasing UI early...");
+      setLoading(false);
+
+      // PHASE 2: App Data (Background)
+      console.log("VerdeIT: loadUserData - Phase 2: Background Data");
       const [l, t, e, sec] = await Promise.all([
         supabaseService.getLogs(userId).catch(e => { console.error("Error fetching logs:", e); return []; }),
         supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
@@ -316,22 +324,21 @@ export default function App() {
       );
       setAssignedEquipment(assigned);
       
-      try {
-        const { count } = await supabase
-          .from('active_shifts')
-          .select('*', { count: 'exact', head: true });
-        setActiveShiftsCount(count || 0);
-      } catch (err) {
-        console.error("VerdeIT: Error fetching active shifts count:", err);
-        setActiveShiftsCount(0);
-      }
+      // OPTIONAL: Active shifts count can be lazy-loaded too
+      supabase.from('active_shifts')
+        .select('*', { count: 'exact', head: true })
+        .then(({ count }) => {
+          setActiveShiftsCount(count || 0);
+        })
+        .catch(err => {
+          console.warn("VerdeIT: Error fetching active shifts count:", err);
+        });
       
-      console.log("VerdeIT: loadUserData completed successfully");
+      console.log("VerdeIT: loadUserData completed successfully in background");
     } catch (error) {
-      console.error('VerdeIT: Error loading data:', error);
+      console.error('VerdeIT: Error in loadUserData loop:', error);
     } finally {
-      console.log("VerdeIT: Setting loading to false");
-      setLoading(false);
+      setLoading(false); // Safeguard
       isFetchingRef.current = false;
     }
   };
