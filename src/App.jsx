@@ -47,6 +47,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const ticketLimitRef = useRef(20);
   const isFetchingRef = useRef(false);
+  const staticDataFetchedRef = useRef(false);
   const [hasMoreTickets, setHasMoreTickets] = useState(true);
 
   // Watchdog to prevent infinite loading
@@ -302,12 +303,39 @@ export default function App() {
 
       // PHASE 2: App Data (Background)
       console.log("VerdeIT: loadUserData - Phase 2: Background Data");
-      const [l, t, e, sec] = await Promise.all([
+      
+      const promises = [
         supabaseService.getLogs(userId).catch(e => { console.error("Error fetching logs:", e); return []; }),
-        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; }),
-        supabaseService.getEquipment().catch(e => { console.error("Error fetching equipment:", e); return []; }),
-        supabaseService.getSectors().catch(e => { console.error("Error fetching sectors:", e); return []; })
-      ]);
+        supabaseService.getTickets(userId, p?.role, ticketLimitRef.current).catch(e => { console.error("Error fetching tickets:", e); return []; })
+      ];
+
+      // Only fetch massive static tables if we haven't already cached them this session
+      if (!staticDataFetchedRef.current) {
+        console.log("VerdeIT: Fecthing Heavy Static Data (Equipment & Sectors)...");
+        promises.push(supabaseService.getEquipment().catch(e => { console.error("Error fetching equipment:", e); return []; }));
+        promises.push(supabaseService.getSectors().catch(e => { console.error("Error fetching sectors:", e); return []; }));
+      }
+
+      const results = await Promise.all(promises);
+      const l = results[0];
+      const t = results[1];
+      
+      let e = equipment;
+      let sec = sectors;
+
+      if (!staticDataFetchedRef.current) {
+        e = results[2] || [];
+        sec = results[3] || [];
+        setEquipment(e);
+        setSectors(sec);
+        
+        // Active shifts count only needs checking periodically or first load, no need to bombard DB every ticket update
+        supabase.from('active_shifts').select('*', { count: 'exact', head: true })
+          .then(({ count }) => setActiveShiftsCount(count || 0))
+          .catch(err => console.warn("VerdeIT: Error fetching active shifts count:", err));
+          
+        staticDataFetchedRef.current = true;
+      }
 
       const logsWithTickets = (l || []).map(log => ({
         ...log,
@@ -317,8 +345,7 @@ export default function App() {
       setLogs(logsWithTickets);
       setTickets(t || []);
       setHasMoreTickets((t || []).length === ticketLimitRef.current);
-      setEquipment(e || []);
-      setSectors(sec || []);
+      // setEquipment and setSectors are handled in the first-load block above
 
       const assigned = (e || []).filter(item => 
         item.assigned_user_id === userId || 
@@ -326,17 +353,8 @@ export default function App() {
       );
       setAssignedEquipment(assigned);
       
-      // OPTIONAL: Active shifts count can be lazy-loaded too
-      supabase.from('active_shifts')
-        .select('*', { count: 'exact', head: true })
-        .then(({ count }) => {
-          setActiveShiftsCount(count || 0);
-        })
-        .catch(err => {
-          console.warn("VerdeIT: Error fetching active shifts count:", err);
-        });
-      
-      console.log("VerdeIT: loadUserData completed successfully in background");
+      console.log(`VerdeIT: loadUserData completed successfully (Cached mode: ${staticDataFetchedRef.current})`);
+
     } catch (error) {
       console.error('VerdeIT: Error in loadUserData loop:', error);
     } finally {
