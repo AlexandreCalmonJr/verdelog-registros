@@ -20,7 +20,7 @@ const mockSupabase = {
     // Supabase v2 uses onAuthStateChange (not onAuthStateChanged)
     onAuthStateChange: (callback) => {
       console.warn('Using mock onAuthStateChange. Auth will not work.');
-      return { data: { subscription: { unsubscribe: () => { } } } };
+      return { data: { subscription: { unsubscribe: () => {} } } };
     },
     signInWithPassword: () => Promise.reject(new Error('Supabase não configurado')),
     signUp: () => Promise.reject(new Error('Supabase não configurado')),
@@ -29,10 +29,10 @@ const mockSupabase = {
     getUser: () => Promise.resolve({ data: { user: null }, error: null }),
   },
   from: () => ({
-    select: () => ({
-      eq: () => ({
-        single: () => Promise.resolve({ data: null, error: null }),
-        order: () => Promise.resolve({ data: [], error: null })
+    select: () => ({ 
+      eq: () => ({ 
+        single: () => Promise.resolve({ data: null, error: null }), 
+        order: () => Promise.resolve({ data: [], error: null }) 
       }),
       order: () => Promise.resolve({ data: [], error: null })
     }),
@@ -61,9 +61,8 @@ if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
         // Persist session in localStorage for PWA support
         persistSession: true,
         autoRefreshToken: true,
-        // Disable URL session detection — we use email/password, not OAuth
-        detectSessionInUrl: false,
-        storage: globalThis.localStorage,
+        detectSessionInUrl: true,
+        storageKey: 'sb-verdeit-auth-token',
       }
     });
     if (!client.auth) {
@@ -80,13 +79,13 @@ if (supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)) {
 
 export const supabase = client;
 
-export const supabaseAdminAuth = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)
+export const supabaseAdminAuth = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl) 
   ? createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      storageKey: 'sb-admin-auth-token',
-      detectSessionInUrl: false
-    }
-  })
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        storageKey: 'sb-admin-auth-token',
+        detectSessionInUrl: false
+      }
+    })
   : mockSupabase;

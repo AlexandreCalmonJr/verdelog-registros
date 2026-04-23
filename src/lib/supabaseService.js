@@ -148,12 +148,19 @@ export const supabaseService = {
       dataToSave.resolved_at = new Date().toISOString();
     }
 
+    // Ensure we don't send undefined ID
+    if (!dataToSave.id) delete dataToSave.id;
+
     const { data, error } = await supabase
       .from('tickets')
-      .upsert(dataToSave)
+      .upsert(dataToSave, { onConflict: 'id' })
       .select()
-      .single();
-    if (error) throw error;
+      .maybeSingle();
+
+    if (error) {
+      console.error("VerdeIT: Supabase upsert error:", error);
+      throw error;
+    }
     return data;
   },
 

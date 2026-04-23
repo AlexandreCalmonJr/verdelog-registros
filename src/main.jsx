@@ -1,5 +1,5 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import {StrictMode} from 'react';
+import {createRoot} from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
@@ -7,23 +7,12 @@ import { registerSW } from 'virtual:pwa-register';
 // Register Service Worker for PWA
 const updateSW = registerSW({
   onNeedRefresh() {
-    console.log('VerdeIT: Nova versão detectada, atualizando...');
-    updateSW(true);
-  },
-  onOfflineReady() {
-    console.log('VerdeIT: App pronto para funcionar offline.');
-  },
-  onRegisteredSW(swUrl, registration) {
-    console.log('VerdeIT: Service Worker registrado em', swUrl);
-    if (registration) {
-      // Verificar atualizações a cada 60 minutos
-      setInterval(() => {
-        registration.update();
-      }, 60 * 60 * 1000);
+    if (confirm('Nova versão disponível. Deseja atualizar?')) {
+      updateSW(true);
     }
   },
-  onRegisterError(error) {
-    console.error('VerdeIT: Erro ao registrar Service Worker:', error);
+  onOfflineReady() {
+    console.log('App pronto para funcionar offline.');
   },
 });
 
@@ -32,7 +21,7 @@ try {
   console.log('VerdeIT: Initializing application...');
   const rootElement = document.getElementById('root');
   if (!rootElement) throw new Error('Root element not found');
-
+  
   createRoot(rootElement).render(
     <StrictMode>
       <App />

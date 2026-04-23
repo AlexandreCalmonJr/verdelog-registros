@@ -271,7 +271,7 @@ export default function Home({ user, onNavigate, stats, assignedEquipment, enabl
             <h2 className="text-sm font-bold uppercase tracking-widest">Chamados (Últimos 7 Dias)</h2>
           </div>
           <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} dy={10} />
@@ -296,7 +296,7 @@ export default function Home({ user, onNavigate, stats, assignedEquipment, enabl
           </div>
           <div className="h-[250px] w-full flex items-center justify-center">
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie
                     data={pieData}

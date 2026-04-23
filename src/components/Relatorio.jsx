@@ -374,7 +374,7 @@ export default function Relatorio({ logs, tickets, profile }) {
               <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Categoria</h3>
               <div className="h-[250px] w-full">
                 {pieCategory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                       <Pie data={pieCategory} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                         {pieCategory.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
@@ -391,7 +391,7 @@ export default function Relatorio({ logs, tickets, profile }) {
               <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Status</h3>
               <div className="h-[250px] w-full">
                 {pieStatus.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                       <Pie data={pieStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                         {pieStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}
@@ -408,7 +408,7 @@ export default function Relatorio({ logs, tickets, profile }) {
               <h3 className="text-sm font-bold uppercase tracking-widest text-text-dim mb-6">Chamados por Prioridade</h3>
               <div className="h-[250px] w-full">
                 {barPriority.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={barPriority} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888' }} dy={10} />
