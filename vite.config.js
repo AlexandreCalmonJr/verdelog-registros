@@ -32,6 +32,18 @@ export default defineConfig(({mode}) => {
     ],
     build: {
       minify: 'terser',
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            charts: ['recharts'],
+            pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
+            ui: ['lucide-react', 'motion', 'clsx', 'tailwind-merge'],
+            supabase: ['@supabase/supabase-js']
+          }
+        }
+      }
     },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),

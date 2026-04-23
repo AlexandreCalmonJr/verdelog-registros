@@ -152,33 +152,29 @@ export const supabaseService = {
     // Se não tem ID, é um chamado novo (INSERT)
     if (!dataToSave.id || dataToSave.id === "") {
       delete dataToSave.id;
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('tickets')
-        .insert(dataToSave)
-        .select()
-        .single();
+        .insert(dataToSave);
         
       if (error) {
         console.error("VerdeIT: Supabase insert error:", error);
         throw error;
       }
-      return data;
+      return true;
     } else {
       // Se tem ID, é uma edição (UPDATE)
       const ticketId = dataToSave.id;
       // Remover campos que não devem ser atualizados diretamente se necessário, mas aqui mandamos o objeto todo
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('tickets')
         .update(dataToSave)
-        .eq('id', ticketId)
-        .select()
-        .single();
+        .eq('id', ticketId);
 
       if (error) {
         console.error("VerdeIT: Supabase update error:", error);
         throw error;
       }
-      return data;
+      return true;
     }
   },
 
