@@ -159,37 +159,23 @@ export default function App() {
     }
 
     let isMounted = true;
-
-    // Get initial session on load (crucial for PWA/refresh persistence)
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!isMounted) return;
-      
-      console.log("VerdeIT: Initial session check:", session ? "Session found" : "No session");
-      if (error) {
-        console.error("VerdeIT: Error getting session:", error);
-        setLoading(false);
-      } else if (session) {
-        setUser(session.user);
-        loadUserData(session.user);
-      } else {
-        setLoading(false);
-      }
-    }).catch(err => {
-      console.error("VerdeIT: Unexpected error in getSession:", err);
-      if (isMounted) setLoading(false);
-    });
-
-    // Subscribe to auth state changes (Supabase v2: onAuthStateChange)
     let subscription = null;
+
+    // Supabase v2.23+ triggers an INITIAL_SESSION event synchronously or immediately async, 
+    // replacing the need for overlapping getSession() calls that cause race conditions.
     try {
       const res = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!isMounted) return;
         
         console.log("VerdeIT: Auth Event:", event);
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           if (session) {
             setUser(session.user);
             await loadUserData(session.user);
+          } else {
+            console.log("VerdeIT: No session found, stopping loading.");
+            setLoading(false);
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -203,6 +189,7 @@ export default function App() {
       subscription = res?.data?.subscription;
     } catch (err) {
       console.error("VerdeIT: Error subscribing to auth changes:", err);
+      setLoading(false);
     }
 
     return () => {
