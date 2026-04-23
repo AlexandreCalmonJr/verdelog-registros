@@ -474,8 +474,18 @@ export default function App() {
         return;
       }
 
-      console.log(`VerdeIT [${saveId}]: Calling upsertTicket...`);
-      await supabaseService.upsertTicket(ticketData);
+      console.log(`VerdeIT [${saveId}]: Calling upsertTicket with payload:`, ticketData);
+      
+      // Add a safety timeout to the database call
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Tempo limite de conexão excedido (15s)")), 15000)
+      );
+
+      await Promise.race([
+        supabaseService.upsertTicket(ticketData),
+        timeoutPromise
+      ]);
+      
       console.log(`VerdeIT [${saveId}]: upsertTicket completed successfully`);
       
       // We don't await loadUserData to close the modal faster if the network response was already successful
