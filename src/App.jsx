@@ -213,6 +213,7 @@ export default function App() {
   // Realtime Updates Listener
   useEffect(() => {
     if (!user) return;
+    let isLocalMounted = true;
 
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
@@ -236,7 +237,7 @@ export default function App() {
           }
           // Use a small delay to allow local updates to finish first if this was triggered by the same user
           setTimeout(() => {
-            if (isMounted) loadUserData(user);
+            if (isLocalMounted) loadUserData(user);
           }, 500);
         }
       )
@@ -244,12 +245,13 @@ export default function App() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'active_shifts' },
         () => {
-          if (isMounted) loadUserData(user);
+          if (isLocalMounted) loadUserData(user);
         }
       )
       .subscribe();
 
     return () => {
+      isLocalMounted = false;
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -476,17 +478,20 @@ export default function App() {
 
       console.log(`VerdeIT [${saveId}]: Calling upsertTicket with payload:`, ticketData);
       
-      // Add a safety timeout to the database call
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Tempo limite de conexão excedido (15s)")), 15000)
-      );
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Tempo limite de conexão excedido (15s)")), 15000);
+      });
 
-      await Promise.race([
-        supabaseService.upsertTicket(ticketData),
-        timeoutPromise
-      ]);
-      
-      console.log(`VerdeIT [${saveId}]: upsertTicket completed successfully`);
+      try {
+        await Promise.race([
+          supabaseService.upsertTicket(ticketData),
+          timeoutPromise
+        ]);
+        console.log(`VerdeIT [${saveId}]: upsertTicket completed successfully`);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
       
       // We don't await loadUserData to close the modal faster if the network response was already successful
       // The real-time listener will likely catch the update anyway

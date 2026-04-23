@@ -149,18 +149,37 @@ export const supabaseService = {
       dataToSave.resolved_at = new Date().toISOString();
     }
 
-    // Ensure we don't send undefined ID and avoid empty strings for UUIDs
-    if (!dataToSave.id || dataToSave.id === "") delete dataToSave.id;
+    // Se não tem ID, é um chamado novo (INSERT)
+    if (!dataToSave.id || dataToSave.id === "") {
+      delete dataToSave.id;
+      const { data, error } = await supabase
+        .from('tickets')
+        .insert(dataToSave)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("VerdeIT: Supabase insert error:", error);
+        throw error;
+      }
+      return data;
+    } else {
+      // Se tem ID, é uma edição (UPDATE)
+      const ticketId = dataToSave.id;
+      // Remover campos que não devem ser atualizados diretamente se necessário, mas aqui mandamos o objeto todo
+      const { data, error } = await supabase
+        .from('tickets')
+        .update(dataToSave)
+        .eq('id', ticketId)
+        .select()
+        .single();
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .upsert(dataToSave, { onConflict: 'id' });
-
-    if (error) {
-      console.error("VerdeIT: Supabase upsert error:", error);
-      throw error;
+      if (error) {
+        console.error("VerdeIT: Supabase update error:", error);
+        throw error;
+      }
+      return data;
     }
-    return data;
   },
 
   async uploadTicketPhoto(file) {
