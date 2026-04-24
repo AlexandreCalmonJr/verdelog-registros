@@ -92,13 +92,14 @@ export const supabaseService = {
   },
 
   // Logs (Ponto)
-  async getLogs(userId) {
+  async getLogs(userId, limit = 100) {
     checkClient();
     const { data, error } = await supabase
       .from('logs')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (error) throw error;
     return data;
   },

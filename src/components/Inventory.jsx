@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabaseService } from '../lib/supabaseService';
 import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive, QrCode, Printer } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { QRCodeSVG } from 'qrcode.react';
@@ -271,6 +272,85 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
     doc.save(`inventario-verdeit-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const fileInputRef = React.useRef(null);
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    setSaving(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      
+      let importedCount = 0;
+      let currentSectors = [...sectors];
+
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' }); // read all including blanks
+
+        let floor = 0;
+        const lowerSheet = sheetName.toLowerCase();
+        if (lowerSheet.includes('1')) floor = 1;
+        else if (lowerSheet.includes('2')) floor = 2;
+
+        for (const row of rows) {
+          const patrimonyStr = String(row['Patrimônio'] || '').trim();
+          if (!patrimonyStr) continue;
+          
+          let sectorName = String(row['Setor'] || '').trim().toUpperCase();
+          if (!sectorName) sectorName = 'GERAL';
+
+          let sectorOpt = currentSectors.find(s => s.name.toUpperCase() === sectorName && s.floor === floor);
+          let sectorId = null;
+          if (sectorOpt) {
+            sectorId = sectorOpt.id;
+          } else {
+            const newSectorData = await supabaseService.upsertSector({
+              name: sectorName,
+              floor: floor,
+              description: `Importado da aba ${sheetName}`
+            });
+            sectorId = newSectorData[0]?.id || newSectorData.id;
+            if(sectorId) {
+               currentSectors.push({ id: sectorId, name: sectorName, floor: floor });
+            }
+          }
+
+          const equipStatus = String(row['Funcionamento'] || '').toLowerCase().includes('sim') || String(row['Funcionamento'] || '').toLowerCase() === '' ? 'active' : 'maintenance';
+          const equipType = String(row['Modelo'] || 'OUTRO');
+
+          // Serial number shouldn't be exactly the patrimony to avoid clash with real SNs, let's prefix it if missing
+          const sn = `IMP-${patrimonyStr}-${Math.floor(Math.random() * 10000)}`;
+
+          const equipToSave = {
+            patrimony_number: patrimonyStr,
+            name: `${equipType} - ${patrimonyStr}`,
+            type: equipType,
+            sector_id: sectorId,
+            assigned_user_name: String(row['User'] || '').trim() || null,
+            status: equipStatus,
+            serial_number: sn
+          };
+          
+          await supabaseService.upsertEquipment(equipToSave);
+          importedCount++;
+        }
+      }
+      showToast(`${importedCount} equipamentos importados!`);
+      fetchData(); 
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      showToast('Erro ao importar planilha', 'error');
+    } finally {
+      setLoading(false);
+      setSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handlePrintLabel = () => {
     const content = document.getElementById('printable-label-content').innerHTML;
     const printWindow = window.open('', '_blank');
@@ -458,12 +538,28 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
                 <option value="retired">Retirado</option>
               </select>
             </div>
-            <button 
-              onClick={() => { setEditingItem(null); setShowEquipModal(true); }}
-              className="bg-green text-bg px-4 py-2 rounded-lg hover:bg-green-dim transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-green/20"
-            >
-              <Plus size={18} /> Novo Equipamento
-            </button>
+            <div className="flex items-center gap-2">
+              <input 
+                type="file" 
+                accept=".xlsx, .xls" 
+                onChange={handleImportExcel} 
+                ref={fileInputRef} 
+                className="hidden" 
+                id="import-excel"
+              />
+              <label 
+                htmlFor="import-excel"
+                className="bg-surface2 border border-border text-text px-4 py-2 rounded-lg hover:border-green/50 hover:text-green cursor-pointer transition-all flex items-center gap-2 text-sm font-bold"
+              >
+                <Download className="rotate-180" size={18} /> Importar Excel
+              </label>
+              <button 
+                onClick={() => { setEditingItem(null); setShowEquipModal(true); }}
+                className="bg-green text-bg px-4 py-2 rounded-lg hover:bg-green-dim transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-green/20"
+              >
+                <Plus size={18} /> Novo Equipamento
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
