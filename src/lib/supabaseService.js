@@ -7,6 +7,7 @@ const checkClient = () => {
 };
 
 export const supabaseService = {
+  supabase,
   // Auth
   async signIn(email, password) {
     checkClient();

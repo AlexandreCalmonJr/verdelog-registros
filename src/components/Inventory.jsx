@@ -547,6 +547,28 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
                 className="hidden" 
                 id="import-excel"
               />
+              <button
+                onClick={async () => {
+                  if (!window.confirm("Essa ação apagará todos os equipamentos e setores criados através da importação de planilhas. Deseja continuar?")) return;
+                  setLoading(true);
+                  try {
+                    const { error: e1 } = await supabaseService.supabase.from('equipment').delete().like('serial_number', 'IMP-%');
+                    if (e1) throw e1;
+                    const { error: e2 } = await supabaseService.supabase.from('sectors').delete().like('description', 'Importado da aba%');
+                    if (e2) throw e2;
+                    showToast("Dados da planilha removidos com sucesso!");
+                    fetchData();
+                  } catch(err) {
+                    console.error(err);
+                    showToast("Erro ao tentar reverter importação: " + err.message, "error");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="bg-red/10 text-red px-4 py-2 border border-red/20 rounded-lg hover:bg-red/20 transition-all flex items-center gap-2 text-sm font-bold"
+              >
+                <Trash2 size={18} /> Reverter Planilha
+              </button>
               <label 
                 htmlFor="import-excel"
                 className="bg-surface2 border border-border text-text px-4 py-2 rounded-lg hover:border-green/50 hover:text-green cursor-pointer transition-all flex items-center gap-2 text-sm font-bold"
