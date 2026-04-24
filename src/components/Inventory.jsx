@@ -4,7 +4,7 @@ import { supabaseService } from '../lib/supabaseService';
 import { Plus, Monitor, MapPin, Trash2, Edit2, History, ChevronRight, Layers, X, User as UserIcon, Download, CheckCircle2, AlertCircle, Archive, QrCode, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { QRCodeSVG } from 'qrcode.react';
 import Barcode from 'react-barcode';
 import { ShieldAlert } from 'lucide-react';
@@ -261,7 +261,7 @@ export default function Inventory({ user, profile, onNewTicket, showToast }) {
       `${e.cpu || ''} / ${e.ram || ''} / ${e.storage || ''}`
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 35,
       head: [['Nome', 'Tipo', 'Marca/Modelo', 'Série', 'Setor/Andar', 'Status', 'Specs']],
       body: tableData,

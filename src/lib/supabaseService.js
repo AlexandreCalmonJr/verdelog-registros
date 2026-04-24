@@ -296,13 +296,18 @@ export const supabaseService = {
   // Maintenance Logs
   async getMaintenanceLogs(equipmentId) {
     checkClient();
-    const { data, error } = await supabase
-      .from('maintenance_logs')
-      .select('*, profiles(name)')
-      .eq('equipment_id', equipmentId)
-      .order('date', { ascending: false });
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_logs')
+        .select('*, profiles(name)')
+        .eq('equipment_id', equipmentId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.warn("Error fetching maintenance logs:", e);
+      return [];
+    }
   },
 
   async createMaintenanceLog(log) {
@@ -319,12 +324,17 @@ export const supabaseService = {
   // Logistics: Supplies
   async getSupplies() {
     checkClient();
-    const { data, error } = await supabase
-      .from('supplies')
-      .select('*')
-      .order('name', { ascending: true });
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('supplies')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.warn("Table 'supplies' might not exist or error:", e);
+      return [];
+    }
   },
 
   async upsertSupply(supply) {
@@ -350,12 +360,17 @@ export const supabaseService = {
   // Logistics: Movements
   async getMovements() {
     checkClient();
-    const { data, error } = await supabase
-      .from('equipment_movements')
-      .select('*, equipment(name, serial_number), from_sector:from_sector_id(name), to_sector:to_sector_id(name), user:profiles!user_id(name)')
-      .order('date', { ascending: false });
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('equipment_movements')
+        .select('*, equipment(name, serial_number), from_sector:from_sector_id(name), to_sector:to_sector_id(name), user:profiles!user_id(name)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.warn("Error fetching movements:", e);
+      return [];
+    }
   },
 
   async createMovement(movement) {
